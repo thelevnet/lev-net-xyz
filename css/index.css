@@ -2,6 +2,7 @@
     --bg-color: #fffbee;
     --main-dark: #272529;
     --border-width: 0.4vh;
+    --link: #1cb1c5;
 }
 
 * {
@@ -63,7 +64,10 @@ body {
 .tab-pane.active {
     display: block; /* Показываем активный */
 }
-
+a {
+    color: var(--link);
+    text-decoration: none;
+}
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(5px); }
     to { opacity: 1; transform: translateY(0); }

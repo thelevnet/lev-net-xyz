@@ -1,47 +1,40 @@
 <!DOCTYPE html>
-<html lang="re">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LEV-NET // Terminal Access</title>
+    <title>lev.net</title>
     <link href="css/index.css" rel="stylesheet">
 </head>
 <body>
 
-<div class="scanline"></div>
-<div class="terminal">
-    <header>
-        <p class="sys-msg">[ SYSTEM READY. CONNECTED TO LEV-NET.XYZ ]</p>
-    </header>
+<div class="wrapper">
+    <div class="Header">
+        <h1>lev.net</h1>
+    </div>
 
-    <main>
-        <div class="line">
-            <span class="prompt">guest@lev-net:~$</span>
-            <span class="cmd">whoami</span>
-        </div>
-        <p class="out">Software Developer</p>
-        <ul class="out list">
-            <li>Java</li>
-            <li>C#</li>
-            <li>Python</li>
-        </ul>
+    <div class="Tabs">
+        <div class="tab active" data-target="portfolio">Portfolio</div>
+        <div class="tab" data-target="projects">Projects</div>
+        <div class="tab" data-target="ai">AI</div>
+    </div>
 
-        <div class="line">
-            <span class="prompt">guest@lev-net:~$</span>
-            <span class="cmd">ls -la contacts/</span>
+    <div class="Content">
+        <div id="portfolio" class="tab-pane active">
+            <h2>Portfolio</h2>
+            <p>Nothing</p>
         </div>
-        <ul class="out list">
-            <li><a href="mailto:dev@lev-net.xyz">email: dev@lev-net.xyz</a></li>
-            <li><a href="https://github.com/thelevnet" target="_blank">github: profile</a></li>
-        </ul>
-
-        <div class="line">
-            <span class="prompt">guest@lev-net:~$</span>
-            <span class="cmd">status</span>
+        <div id="projects" class="tab-pane">
+            <h2>Projects</h2>
+            <p>Still Nothing</p>
         </div>
-        <p class="out">Refactoring the world... <span class="cursor"></span></p>
-    </main>
+        <div id="ai" class="tab-pane">
+            <h2>AI Section</h2>
+            <p>Also Nothing</p>
+        </div>
+    </div>
 </div>
 
+<script src="js/index.js"></script>
 </body>
 </html>

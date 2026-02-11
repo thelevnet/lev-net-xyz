@@ -1,9 +1,7 @@
-/* Цвет хакерской мечты */
 :root {
-    --bg-color: #0d0d0d;
-    --main-green: #a0eaea;
-    --dim-green: rgba(0, 255, 225, 0.15);
-    --prompt-color: #33cfe1;
+    --bg-color: #fffbee;
+    --main-dark: #272529;
+    --border-width: 0.4vh;
 }
 
 * {
@@ -14,100 +12,59 @@
 
 body {
     background-color: var(--bg-color);
-    color: var(--main-green);
-    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    color: var(--main-dark);
+    font-family: 'Courier New', monospace;
     display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    padding: 20px;
-    overflow: hidden;
+    justify-content: center; /* Центрируем по горизонтали */
+    min-height: 100vh;
+    padding: 40px 20px;
 }
 
-/* Эффект мерцающего сканера */
-.scanline {
-    position: fixed;
-    top: 0;
-    left: 0;
+.wrapper {
     width: 100%;
-    height: 2px;
-    background: var(--dim-green);
-    opacity: 0.1;
-    z-index: 10;
-    animation: scan 4s linear infinite;
+    max-width: 800px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
 }
 
-@keyframes scan {
-    from { top: 0; }
-    to { top: 100%; }
-}
-
-.terminal {
-    width: 100%;
-    max-width: 700px;
-    background: rgba(0, 0, 0, 0.8);
-    border: 1px solid var(--main-green);
-    padding: 30px;
-    box-shadow: 0 0 20px var(--dim-green);
-    position: relative;
-}
-
-.sys-msg {
-    font-weight: bold;
-    margin-bottom: 25px;
-    border-bottom: 1px solid var(--dim-green);
+.Header {
+    border-bottom: var(--main-dark) var(--border-width) solid;
     padding-bottom: 10px;
-    font-size: 0.85rem;
 }
 
-.line {
+.Tabs {
     display: flex;
-    gap: 10px;
-    margin-top: 15px;
+    gap: 30px;
 }
 
-.prompt {
-    color: var(--prompt-color);
+.tab {
+    cursor: pointer;
+    padding: 5px 0;
+    font-weight: bold;
+    text-transform: uppercase;
+    transition: all 0.2s ease;
 }
 
-.cmd {
-    color: #fff;
+.tab:hover {
+    opacity: 0.7;
 }
 
-.out {
-    margin: 5px 0 15px 20px;
-    line-height: 1.5;
-    opacity: 0.9;
+.tab.active {
+    border-bottom: var(--main-dark) 2px solid;
 }
 
-.list {
-    list-style: none;
+/* Стили для контента */
+.tab-pane {
+    display: none; /* Скрыто по умолчанию */
+    animation: fadeIn 0.3s ease;
 }
 
-.list li::before {
-    content: ">> ";
+.tab-pane.active {
+    display: block; /* Показываем активный */
 }
 
-a {
-    color: var(--main-green);
-    text-decoration: none;
-    transition: 0.3s;
-}
-
-a:hover {
-    background: var(--main-green);
-    color: #000;
-}
-
-.cursor {
-    display: inline-block;
-    width: 10px;
-    height: 18px;
-    background: var(--main-green);
-    vertical-align: middle;
-    animation: blink 0.8s step-end infinite;
-}
-
-@keyframes blink {
-    50% { opacity: 0; }
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
 }

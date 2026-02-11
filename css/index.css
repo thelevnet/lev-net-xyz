@@ -1,0 +1,25 @@
+:root {
+    --bg-color: #1e1e20;
+    --text-color: #e0f1ff;
+    --accent-color: #7ce8e3;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    font-family: "JetBrains Mono", monospace;
+    line-height: 1.6;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    text-align: center;
+}
+
+h1 {
+    font-weight: 800;
+    color: var(--accent-color);
+    border-bottom: 2px solid var(--accent-color);
+    padding-bottom: 10px;
+}

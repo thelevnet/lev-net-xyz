@@ -1,11 +1,47 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="re">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LEV-NET // Terminal Access</title>
     <link href="css/index.css" rel="stylesheet">
 </head>
-    <body>
-        <h1>Not Ready</h1>
-    </body>
+<body>
+
+<div class="scanline"></div>
+<div class="terminal">
+    <header>
+        <p class="sys-msg">[ SYSTEM READY. CONNECTED TO LEV-NET.XYZ ]</p>
+    </header>
+
+    <main>
+        <div class="line">
+            <span class="prompt">guest@lev-net:~$</span>
+            <span class="cmd">whoami</span>
+        </div>
+        <p class="out">Software Developer</p>
+        <ul class="out list">
+            <li>Java</li>
+            <li>C#</li>
+            <li>Python</li>
+        </ul>
+
+        <div class="line">
+            <span class="prompt">guest@lev-net:~$</span>
+            <span class="cmd">ls -la contacts/</span>
+        </div>
+        <ul class="out list">
+            <li><a href="mailto:dev@lev-net.xyz">email: dev@lev-net.xyz</a></li>
+            <li><a href="https://github.com/thelevnet" target="_blank">github: profile</a></li>
+        </ul>
+
+        <div class="line">
+            <span class="prompt">guest@lev-net:~$</span>
+            <span class="cmd">status</span>
+        </div>
+        <p class="out">Refactoring the world... <span class="cursor"></span></p>
+    </main>
+</div>
+
+</body>
 </html>

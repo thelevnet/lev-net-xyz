@@ -1,25 +1,113 @@
+/* Цвет хакерской мечты */
 :root {
-    --bg-color: #1e1e20;
-    --text-color: #e0f1ff;
-    --accent-color: #7ce8e3;
+    --bg-color: #0d0d0d;
+    --main-green: #a0eaea;
+    --dim-green: rgba(0, 255, 225, 0.15);
+    --prompt-color: #33cfe1;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
 }
 
 body {
     background-color: var(--bg-color);
-    color: var(--text-color);
-    font-family: "JetBrains Mono", monospace;
-    line-height: 1.6;
-    margin: 0;
+    color: var(--main-green);
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
     display: flex;
     justify-content: center;
     align-items: center;
     height: 100vh;
-    text-align: center;
+    padding: 20px;
+    overflow: hidden;
 }
 
-h1 {
-    font-weight: 800;
-    color: var(--accent-color);
-    border-bottom: 2px solid var(--accent-color);
+/* Эффект мерцающего сканера */
+.scanline {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: var(--dim-green);
+    opacity: 0.1;
+    z-index: 10;
+    animation: scan 4s linear infinite;
+}
+
+@keyframes scan {
+    from { top: 0; }
+    to { top: 100%; }
+}
+
+.terminal {
+    width: 100%;
+    max-width: 700px;
+    background: rgba(0, 0, 0, 0.8);
+    border: 1px solid var(--main-green);
+    padding: 30px;
+    box-shadow: 0 0 20px var(--dim-green);
+    position: relative;
+}
+
+.sys-msg {
+    font-weight: bold;
+    margin-bottom: 25px;
+    border-bottom: 1px solid var(--dim-green);
     padding-bottom: 10px;
+    font-size: 0.85rem;
+}
+
+.line {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.prompt {
+    color: var(--prompt-color);
+}
+
+.cmd {
+    color: #fff;
+}
+
+.out {
+    margin: 5px 0 15px 20px;
+    line-height: 1.5;
+    opacity: 0.9;
+}
+
+.list {
+    list-style: none;
+}
+
+.list li::before {
+    content: ">> ";
+}
+
+a {
+    color: var(--main-green);
+    text-decoration: none;
+    transition: 0.3s;
+}
+
+a:hover {
+    background: var(--main-green);
+    color: #000;
+}
+
+.cursor {
+    display: inline-block;
+    width: 10px;
+    height: 18px;
+    background: var(--main-green);
+    vertical-align: middle;
+    animation: blink 0.8s step-end infinite;
+}
+
+@keyframes blink {
+    50% { opacity: 0; }
 }

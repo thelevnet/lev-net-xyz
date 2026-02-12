@@ -69,7 +69,7 @@ li {
 }
 
 li::before {
-    content: ">>";
+    content: ">";
     color: var(--main-dark);
     font-weight: bold;
 }
@@ -110,7 +110,7 @@ li::before {
 .card:hover {
     /* 5px -> 0.3125rem */
     transform: translate(-0.3125rem, -0.3125rem);
-    box-shadow: 0.3125rem 0.3125rem 0px var(--main-dark);
+    box-shadow: 0.3125rem 0.3125rem 0 var(--main-dark);
 }
 
 a {

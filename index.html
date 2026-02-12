@@ -15,34 +15,86 @@
 
     <div class="Tabs">
         <div class="tab active" data-target="portfolio">Portfolio</div>
-        <div class="tab" data-target="projects">Projects</div>
-        <div class="tab" data-target="ai">AI</div>
+        <div class="tab" data-target="downloads">Downloads</div>
         <div class="tab" data-target="links">Links</div>
+<!--        <div class="tab" data-target="ai">AI</div>-->
     </div>
 
     <div class="Content">
         <div id="portfolio" class="tab-pane active">
             <h2>Portfolio</h2>
-            <p>Nothing</p>
+            <ul>
+                <br>
+                <h3>Languages</h3>
+                <div class="grid">
+                    <div class="card">
+                        <h3>Java</h3>
+                        <p>Main Language</p>
+                        <div class="card">
+                            <h3>Swing</h3>
+                            <p>Main Framework</p>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3>C#</h3>
+                        <p>Currently learning</p>
+                    </div>
+                    <div class="card">
+                        <h3>Python</h3>
+                        <p>Good knowledge</p>
+                    </div>
+                    <div class="card">
+                        <h3>C++</h3>
+                        <p>Currently learning</p>
+                    </div>
+                </div>
+                <br>
+                <h3>Projects</h3>
+                <br>
+                <div class="card" style="cursor: pointer;" onclick="document.querySelector('.tab[data-target=\'downloads\']').click();">
+                    <h3>My Projects</h3>
+                    <p>Go to Downloads section</p>
+                </div>
+            </ul>
         </div>
-        <div id="projects" class="tab-pane">
-            <h2>Projects</h2>
-            <p>Still Nothing</p>
-        </div>
-        <div id="ai" class="tab-pane">
-            <h2>AI Section</h2>
-            <p>Also Nothing</p>
+        <div id="downloads" class="tab-pane">
+            <h2>Downloads</h2>
+            <div class="card">
+                <a href="Projects/GenLang.jar" download="GenLang.jar" style="text-decoration: none; color: inherit;">
+                    <h3>GenLang</h3>
+                    <p>An IDE for my Conlang</p>
+                    <small>Used: Java, Swing, FlatLaf</small>
+                </a>
+            </div>
         </div>
         <div id="links" class="tab-pane">
             <h2>Links</h2>
-            <a href="https://github.com/thelevnet">GitHub</a><br>
-            <a href="mailto:dev@lev-net.xyz">Mail</a><br>
-            <a href="https://t.me/thelevnet">Telegram</a>
+            <div class="grid">
+                <a href="https://github.com/thelevnet">
+                    <div class="card">
+                        <h3>GitHub<br></h3>
+                    </div>
+                </a>
+                <a href="mailto:dev@lev-net.xyz">
+                    <div class="card">
+                        <h3>Mail<br></h3>
+                    </div>
+                </a>
+                <a href="https://t.me/thelevnet">
+                    <div class="card">
+                        <h3>Telegram<br></h3>
+                    </div>
+                </a>
+
+            </div>
+        </div>
+        <div id="ai" class="tab-pane">
+            <h2>AI Section</h2>
+            <p>Not yet</p>
         </div>
 
     </div>
 </div>
-
 <script src="js/index.js"></script>
 </body>
 </html>

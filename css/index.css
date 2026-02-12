@@ -69,9 +69,19 @@ li {
 }
 
 li::before {
-    content: ">";
+    content: "";
     color: var(--main-dark);
     font-weight: bold;
+}
+/* Убираем стандартные точки у списка */
+/* Настраиваем иконку */
+#langs li::before {
+    content: "\f058"; /* Unicode для circle-check */
+    font-family: "Font Awesome 6 Free"; /* Важно: в кавычках и точно как в библиотеке */
+}
+#nolangs li::before {
+    content: "\f057";
+    font-family: "Font Awesome 6 Free";
 }
 
 .tab:hover {

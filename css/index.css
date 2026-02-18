@@ -25,6 +25,10 @@ body {
     line-height: 1.2; /* Добавил для читаемости */
 }
 
+img {
+    border-radius: 20%;
+}
+
 .wrapper {
     width: 100%;
     /* 800px -> 50rem */

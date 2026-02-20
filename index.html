@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -18,7 +18,6 @@
         <div class="tab active" data-target="about"><i class="fa-solid fa-briefcase"></i> About Me</div>
         <div class="tab" data-target="downloads"><i class="fa-solid fa-download"></i> Downloads</div>
         <div class="tab" data-target="links"><i class="fa-solid fa-link"></i> Links</div>
-        <div class="tab" data-target="hb"><i class="fa-solid fa-link"></i> Happy Birthday</div>
         <div class="tab" data-target="chat"><i class="fa-solid fa-message"></i> Chat</div>
     </div>
 
@@ -100,7 +99,7 @@
                     </div>
                     <div class="card">
                         <p>
-                        <h3><i class="fa-brands fa-linux"></i> Os: </h3> Linux Mint</p>
+                        <h3><i class="fa-brands fa-linux"></i> Os: </h3> Arch Linux</p>
                     </div>
                 </div>
             </section>
@@ -117,34 +116,83 @@
                 </a>
             </div>
         </div>
-
-        <div id="hb" class="tab-pane">
-            <h2>Happy Birthday</h2>
-            <div class="card">
-                <h1>
-                    С днём рождения миша!!! 18.02.2026
-                </h1>
-                <p>Как подарок могу добавить что-то на сайт тебе</p>
-            </div>
-            <br><br>
-            <img width="100%" src="pic/pug.jpg">
-        </div>
         <div id="chat" class="tab-pane">
-            <h2>Chat</h2>
-            <script src="https://giscus.app/client.js"
-                    data-repo="thelevnet/lev-net-xyz"
-                    data-repo-id="R_kgDOROC1gQ"
-                    data-category-id="DIC_kwDOROC1gc4C2uFC"
-                    data-mapping="specific"
-                    data-term="Chat"
-                    data-strict="0"
-                    data-reactions-enabled="1"
-                    data-emit-metadata="0"
-                    data-input-position="top"
-                    data-theme="light"
-                    data-lang="ru"
-                    crossorigin="anonymous"
-                    async>
+            <h2><i class="fa-solid fa-message"></i> Chat</h2>
+            <input type="text" id="msgUser" placeholder="Name" style="width: 100%; padding: 8px;" class="card"><br>
+
+            <br>
+
+            <div id="chatBox" style="height: 50vh; overflow-y: auto; background: #fffbee;  border: none;">
+                <p>loading...</p>
+            </div>
+
+            <div style="display: flex; gap: 10px;">
+                <input type="text" id="msgInput" placeholder="Message..." style="flex-grow: 1; padding: 8px;" class="card">
+                <button id="sendBtn" style="padding: 8px 20px; cursor: pointer;" class="card">
+                    send
+                </button>
+            </div>
+
+            <script type="module">
+                // Подключаем Firebase напрямую из облака Google
+                import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+                import { getDatabase, ref, push, onValue, serverTimestamp, query, limitToLast } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+                const firebaseConfig = {
+                    apiKey: "AIzaSyACwWS7Q03oipjC4issm3WIy8k_OkSiUiM",
+                    databaseURL: "https://levnetxyz-default-rtdb.europe-west1.firebasedatabase.app",
+                    authDomain: "levnetxyz.firebaseapp.com",
+                    projectId: "levnetxyz",
+                    storageBucket: "levnetxyz.firebasestorage.app",
+                    messagingSenderId: "223875022110",
+                    appId: "1:223875022110:web:8b4282b3ce3f19020cdd0f",
+                    measurementId: "G-XK20LGP6FQ"
+                };
+
+                // Запуск
+                const app = initializeApp(firebaseConfig);
+                const db = getDatabase(app);
+                const messagesRef = ref(db, 'messages');
+
+                // Логика кнопки
+                document.getElementById('sendBtn').onclick = () => {
+                    const input = document.getElementById('msgInput');
+                    const userInput = document.getElementById('msgUser');
+                    const text = input.value.trim();
+                    const user = userInput.value.trim() || "Anonym";
+
+                    if (text.length > 0 && text.length <= 300) {
+                        push(messagesRef, {
+                            user: user,
+                            text: text,
+                            timestamp: serverTimestamp()
+                        });
+                        input.value = '';
+                    } else {
+                        alert('less than 300 Characters please');
+                    }
+                };
+
+                // Получение данных в реальном времени
+                const lastMessagesQuery = query(messagesRef, limitToLast(50));
+                onValue(lastMessagesQuery, (snapshot) => {
+                    const chatBox = document.getElementById('chatBox');
+                    chatBox.innerHTML = '';
+                    const data = snapshot.val();
+
+                    if (data) {
+                        Object.values(data).forEach(msg => {
+                            // const time = msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString() : "...";
+                            chatBox.innerHTML += `<div style="margin-bottom: 10px; border-bottom: 1px solid #333;">
+                                <small style="color: #777;"></small>
+                                <b>${msg.user}:</b> ${msg.text}
+                            </div>`;
+                        });
+                        chatBox.scrollTop = chatBox.scrollHeight;
+                    } else {
+                        chatBox.innerHTML = 'No Messages';
+                    }
+                });
             </script>
         </div>
 

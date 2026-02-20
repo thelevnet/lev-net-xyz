@@ -28,7 +28,6 @@ body {
 img {
     border-radius: 20%;
 }
-
 .wrapper {
     width: 100%;
     /* 800px -> 50rem */
@@ -47,17 +46,35 @@ img {
 
 .Tabs {
     display: flex;
-    /* 30px -> 1.875rem */
     gap: 1.875rem;
+    overflow-x: auto;
+    white-space: nowrap;
+    padding-bottom: 0.75rem; /* Отступ для скроллбара, чтобы не слипался с текстом */
+
+    /* Для Firefox: делаем его заметным */
+    scrollbar-width: thin;
+    scrollbar-color: var(--main-dark) #e2decb; /* Ползунок и дорожка */
+}
+
+/* Для Chrome, Safari и Edge: настраиваем всё руками */
+.Tabs::-webkit-scrollbar {
+    height: 6px; /* Ширина полоски, чтобы её было видно */
+    display: block; /* Гарантируем, что она не скрыта */
+}
+
+.Tabs::-webkit-scrollbar-track {
+    background: #e2decb; /* Чуть темнее твоего фона, чтобы была видна дорожка */
+    border-radius: 3px;
+}
+
+.Tabs::-webkit-scrollbar-thumb {
+    background-color: var(--main-dark); /* Сам ползунок — черный как твой текст */
+    border-radius: 3px;
+    border: 1px solid #e2decb; /* Небольшой зазор, чтобы выглядело аккуратно */
 }
 
 .tab {
-    cursor: pointer;
-    /* 5px -> 0.3125rem */
-    padding: 0.3125rem 0;
-    font-weight: bold;
-    text-transform: uppercase;
-    transition: all 0.2s ease;
+    flex: 0 0 auto; /* Чтобы табы не сжимались, заставляя скролл работать */
 }
 
 ul {

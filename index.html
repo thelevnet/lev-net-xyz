@@ -26,7 +26,7 @@
 
             <div id="siteAuthOverlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); z-index: 101; display: flex; align-items: center; justify-content: center; flex-direction: column;">
                 <h3 style="margin-bottom: 1rem;">🔒 password 🔒</h3>
-                <input type="password" id="sitePassInput" placeholder="homepass" class="card" style="padding: 0.625rem; margin-bottom: 1rem; width: 200px;">
+                <input type="password" id="sitePassInput" placeholder="password" class="card" style="padding: 0.625rem; margin-bottom: 1rem; width: 200px;">
                 <button id="siteAuthBtn" class="card" style="padding: 0.625rem 1.25rem; cursor: pointer;">Open</button>
             </div>
 
@@ -67,7 +67,7 @@
 
                 // Site Password
                 document.getElementById('siteAuthBtn').onclick = () => {
-                    if (document.getElementById('sitePassInput').value === "homepass") {
+                    if (document.getElementById('sitePassInput').value === "openchat") {
                         document.getElementById('siteAuthOverlay').style.display = 'none';
                         document.getElementById('userAuthOverlay').style.display = 'flex';
                     } else { alert("Wrong password!"); }

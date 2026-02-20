@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body>
-
+<script src="js/firebaseconf.js"></script>
 <div class="wrapper">
     <div class="Header">
         <h1><i class="fa-solid fa-terminal"></i> lev.net</h1>
@@ -22,10 +22,173 @@
     </div>
 
     <div class="Content">
+        <div id="chat" class="tab-pane" style="min-height: 550px; border: var(--border-width) solid var(--main-dark); background: var(--bg-color); color: var(--main-dark); position: relative; padding: 1.25rem;">
+
+            <div id="siteAuthOverlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); z-index: 101; display: flex; align-items: center; justify-content: center; flex-direction: column;">
+                <h3 style="margin-bottom: 1rem;">🔒 password 🔒</h3>
+                <input type="password" id="sitePassInput" placeholder="homepass" class="card" style="padding: 0.625rem; margin-bottom: 1rem; width: 200px;">
+                <button id="siteAuthBtn" class="card" style="padding: 0.625rem 1.25rem; cursor: pointer;">Open</button>
+            </div>
+
+            <div id="userAuthOverlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); z-index: 100; display: none; align-items: center; justify-content: center; flex-direction: column;">
+                <h3 style="margin-bottom: 0.5rem;">👤 Login / Registration 👤</h3>
+                <p style="font-size: 0.8rem; margin-bottom: 1rem;">You can't change your username later</p>
+                <input type="text" id="loginUser" placeholder="Username" class="card" style="margin-bottom: 0.625rem; padding: 0.625rem; width: 250px;">
+                <input type="password" id="loginPass" placeholder="Personal password" class="card" style="margin-bottom: 1rem; padding: 0.625rem; width: 250px;">
+                <button id="userAuthBtn" class="card" style="padding: 0.625rem 1.25rem; cursor: pointer;">Login</button>
+            </div>
+
+            <div id="chatContent" style="display: none;">
+                <div id="sidebar" style="width: 30%; float: left; border-right: var(--border-width) solid var(--main-dark); padding-right: 1rem; box-sizing: border-box;">
+                    <input type="text" id="chatSearch" placeholder="@user or #group" class="card" style="width: 100%; padding: 0.5rem; margin-bottom: 1rem; font-size: 0.8rem;">
+                    <button id="createGroupBtn" class="card" style="width: 100%; font-size: 0.7rem; margin-bottom: 1rem; padding: 0.5rem; cursor: pointer;">+ Group +</button>
+                    <div id="activeChatsList" style="height: 350px; overflow-y: auto; padding-right: 5px;"></div>
+                </div>
+
+                <div id="mainChat" style="width: 70%; float: left; padding-left: 1rem; box-sizing: border-box;">
+                    <h4 id="chatTitle" style="margin-bottom: 1rem; border-bottom: 1px solid var(--main-dark);">Select a chat</h4>
+                    <div id="chatBox" style="height: 320px; overflow-y: auto; border: 1px solid var(--main-dark); padding: 0.625rem; background: #fff; margin-bottom: 1rem;"></div>
+
+                    <div style="position: relative;">
+                        <input type="text" id="msgInput" placeholder="Message..." class="card" style="width: 80%; padding: 0.625rem;">
+                        <button id="sendBtn" class="card" style="width: 18%; padding: 0.625rem; float: right; cursor: pointer;">➜</button>
+                    </div>
+                </div>
+                <div style="clear: both;"></div> </div>
+
+            <script type="module">
+                import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+                import { getDatabase, ref, push, onValue, set, get, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+                const app = initializeApp(firebaseConfig);
+                const db = getDatabase(app);
+                let currentUser = null;
+                let currentChatId = null;
+
+                // Site Password
+                document.getElementById('siteAuthBtn').onclick = () => {
+                    if (document.getElementById('sitePassInput').value === "homepass") {
+                        document.getElementById('siteAuthOverlay').style.display = 'none';
+                        document.getElementById('userAuthOverlay').style.display = 'flex';
+                    } else { alert("Wrong password!"); }
+                };
+
+                // Login + Auto-registration
+                document.getElementById('userAuthBtn').onclick = async () => {
+                    let uName = document.getElementById('loginUser').value.trim().replace('@', '');
+                    const uPass = document.getElementById('loginPass').value.trim();
+                    if (uName.length < 2 || !uPass) return alert("Fill in everything!");
+
+                    uName = '@' + uName;
+                    const userRef = ref(db, 'users/' + uName.replace('@', ''));
+                    const snap = await get(userRef);
+
+                    if (snap.exists()) {
+                        if (snap.val().pass === uPass) { proceed(uName); }
+                        else { alert("Nickname taken, wrong password!"); }
+                    } else {
+                        await set(userRef, { pass: uPass });
+                        proceed(uName);
+                    }
+                };
+
+                function proceed(user) {
+                    currentUser = user;
+                    document.getElementById('userAuthOverlay').style.display = 'none';
+                    document.getElementById('chatContent').style.display = 'block';
+                    loadActiveChats();
+                }
+
+                // Search (auto-at)
+                document.getElementById('chatSearch').onkeydown = (e) => {
+                    if (e.key === 'Enter') {
+                        let val = e.target.value.trim();
+                        if (!val) return;
+                        if (!val.startsWith('@') && !val.startsWith('#')) val = '@' + val;
+                        openChat(val);
+                        e.target.value = '';
+                    }
+                };
+
+                document.getElementById('createGroupBtn').onclick = () => {
+                    let g = prompt("Group name:");
+                    if (g) openChat('#' + g.replace('#', ''));
+                };
+
+                function openChat(id) {
+                    currentChatId = id;
+                    document.getElementById('chatTitle').innerText = "Chat: " + id;
+
+                    let dbId = id.startsWith('@')
+                        ? [currentUser, id].sort().join('_').replace(/@/g, '')
+                        : id.replace('#', 'group_');
+
+                    onValue(ref(db, 'messages/' + dbId), (snap) => {
+                        const box = document.getElementById('chatBox');
+                        box.innerHTML = '';
+                        const data = snap.val();
+                        if (data) {
+                            Object.values(data).forEach(m => {
+                                const div = document.createElement('div');
+                                div.style.marginBottom = "0.5rem";
+                                div.style.fontSize = "0.9rem";
+                                div.innerHTML = `<b style="color:var(--link)">${m.user}:</b> ${m.text}`;
+                                box.appendChild(div);
+                            });
+                            box.scrollTop = box.scrollHeight;
+                        }
+                    });
+                }
+
+                const sendMsg = () => {
+                    const inp = document.getElementById('msgInput');
+                    const txt = inp.value.trim();
+                    if (!txt || !currentChatId) return;
+
+                    let dbId = currentChatId.startsWith('@')
+                        ? [currentUser, currentChatId].sort().join('_').replace(/@/g, '')
+                        : currentChatId.replace('#', 'group_');
+
+                    push(ref(db, 'messages/' + dbId), {
+                        user: currentUser,
+                        text: txt,
+                        timestamp: serverTimestamp()
+                    });
+
+                    set(ref(db, `active_chats/${currentUser.replace('@','')}/${dbId}`), {title: currentChatId});
+                    if(currentChatId.startsWith('@')) {
+                        set(ref(db, `active_chats/${currentChatId.replace('@','')}/${dbId}`), {title: currentUser});
+                    }
+                    inp.value = '';
+                };
+
+                document.getElementById('sendBtn').onclick = sendMsg;
+                document.getElementById('msgInput').onkeydown = (e) => { if(e.key === 'Enter') sendMsg(); };
+
+                function loadActiveChats() {
+                    onValue(ref(db, `active_chats/${currentUser.replace('@','')}`), (snap) => {
+                        const list = document.getElementById('activeChatsList');
+                        list.innerHTML = '<p style="font-size:0.7rem; margin-bottom:0.5rem;">Chats: </p>';
+                        const data = snap.val();
+                        if (data) {
+                            Object.entries(data).forEach(([id, info]) => {
+                                const d = document.createElement('div');
+                                d.className = 'card';
+                                d.style.cssText = 'cursor:pointer; padding:0.4rem; margin-bottom:0.5rem; font-size:0.8rem;';
+                                d.innerText = info.title;
+                                d.onclick = () => openChat(info.title);
+                                list.appendChild(d);
+                            });
+                        }
+                    });
+                }
+            </script>
+        </div>
+
         <div id="about" class="tab-pane active">
             <h2>About Me</h2>
             <section>
-                <h3><i class="fa-solid fa-code"></i> Programing Languages & Tech</h3>
+                <h3><i class="fa-solid fa-code"></i> Programming Languages & Tech</h3>
                 <div class="grid">
                     <div class="card">
                         <i class="fa-brands fa-java"></i>
@@ -82,7 +245,7 @@
                         <b> I Learn:</b>
                         <ul id="nolangs">
                             <li> Japanese</li>
-                            <li>Latin</li>
+                            <li> Latin</li>
                         </ul>
                         </p>
                     </div>
@@ -99,12 +262,11 @@
                     </div>
                     <div class="card">
                         <p>
-                        <h3><i class="fa-brands fa-linux"></i> Os: </h3> Arch Linux</p>
+                        <h3><i class="fa-brands fa-linux"></i> OS: </h3> Arch Linux</p>
                     </div>
                 </div>
             </section>
         </div>
-
         <div id="downloads" class="tab-pane">
             <h2>Downloads</h2>
             <div class="card project-item">
@@ -115,85 +277,6 @@
                     <small><i class="fa-brands fa-java"></i> Java, Swing</small>
                 </a>
             </div>
-        </div>
-        <div id="chat" class="tab-pane">
-            <h2><i class="fa-solid fa-message"></i> Chat</h2>
-            <input type="text" id="msgUser" placeholder="Name" style="width: 100%; padding: 8px;" class="card"><br>
-
-            <br>
-
-            <div id="chatBox" style="height: 50vh; overflow-y: auto; background: #fffbee;  border: none;">
-                <p>loading...</p>
-            </div>
-
-            <div style="display: flex; gap: 10px;">
-                <input type="text" id="msgInput" placeholder="Message..." style="flex-grow: 1; padding: 8px;" class="card">
-                <button id="sendBtn" style="padding: 8px 20px; cursor: pointer;" class="card">
-                    send
-                </button>
-            </div>
-
-            <script type="module">
-                // Подключаем Firebase напрямую из облака Google
-                import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-                import { getDatabase, ref, push, onValue, serverTimestamp, query, limitToLast } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
-
-                const firebaseConfig = {
-                    apiKey: "AIzaSyACwWS7Q03oipjC4issm3WIy8k_OkSiUiM",
-                    databaseURL: "https://levnetxyz-default-rtdb.europe-west1.firebasedatabase.app",
-                    authDomain: "levnetxyz.firebaseapp.com",
-                    projectId: "levnetxyz",
-                    storageBucket: "levnetxyz.firebasestorage.app",
-                    messagingSenderId: "223875022110",
-                    appId: "1:223875022110:web:8b4282b3ce3f19020cdd0f",
-                    measurementId: "G-XK20LGP6FQ"
-                };
-
-                // Запуск
-                const app = initializeApp(firebaseConfig);
-                const db = getDatabase(app);
-                const messagesRef = ref(db, 'messages');
-
-                // Логика кнопки
-                document.getElementById('sendBtn').onclick = () => {
-                    const input = document.getElementById('msgInput');
-                    const userInput = document.getElementById('msgUser');
-                    const text = input.value.trim();
-                    const user = userInput.value.trim() || "Anonym";
-
-                    if (text.length > 0 && text.length <= 300) {
-                        push(messagesRef, {
-                            user: user,
-                            text: text,
-                            timestamp: serverTimestamp()
-                        });
-                        input.value = '';
-                    } else {
-                        alert('less than 300 Characters please');
-                    }
-                };
-
-                // Получение данных в реальном времени
-                const lastMessagesQuery = query(messagesRef, limitToLast(50));
-                onValue(lastMessagesQuery, (snapshot) => {
-                    const chatBox = document.getElementById('chatBox');
-                    chatBox.innerHTML = '';
-                    const data = snapshot.val();
-
-                    if (data) {
-                        Object.values(data).forEach(msg => {
-                            // const time = msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString() : "...";
-                            chatBox.innerHTML += `<div style="margin-bottom: 10px; border-bottom: 1px solid #333;">
-                                <small style="color: #777;"></small>
-                                <b>${msg.user}:</b> ${msg.text}
-                            </div>`;
-                        });
-                        chatBox.scrollTop = chatBox.scrollHeight;
-                    } else {
-                        chatBox.innerHTML = 'No Messages';
-                    }
-                });
-            </script>
         </div>
 
         <div id="links" class="tab-pane">

@@ -15,174 +15,45 @@
     </div>
 
     <div class="Tabs">
-        <div class="tab active" data-target="about"><i class="fa-solid fa-briefcase"></i> About Me</div>
-        <div class="tab" data-target="downloads"><i class="fa-solid fa-download"></i> Downloads</div>
-        <div class="tab" data-target="links"><i class="fa-solid fa-link"></i> Links</div>
-        <div class="tab" data-target="chat"><i class="fa-solid fa-message"></i> Chat</div>
+        <div class="tab active" data-target="about">About Me</div>
+        <div class="tab" data-target="downloads">Downloads</div>
+        <div class="tab" data-target="links">Links</div>
+        <div class="tab" data-target="chat">Chat</div>
     </div>
 
     <div class="Content">
-        <div id="chat" class="tab-pane" style="min-height: 550px; border: var(--border-width) solid var(--main-dark); background: var(--bg-color); color: var(--main-dark); position: relative; padding: 1.25rem;">
-
-            <div id="siteAuthOverlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); z-index: 101; display: flex; align-items: center; justify-content: center; flex-direction: column;">
-                <h3 style="margin-bottom: 1rem;">🔒 password 🔒</h3>
-                <input type="password" id="sitePassInput" placeholder="password" class="card" style="padding: 0.625rem; margin-bottom: 1rem; width: 200px;">
-                <button id="siteAuthBtn" class="card" style="padding: 0.625rem 1.25rem; cursor: pointer;">Open</button>
+        <div id="chat" class="tab-pane chat-pane-custom">
+            <div id="siteAuthOverlay" class="overlay">
+                <h3>🔒 password 🔒</h3>
+                <input type="password" id="sitePassInput" placeholder="password" class="card auth-input" aria-label="Password">
+                <button id="siteAuthBtn" class="card auth-btn">Open</button>
             </div>
 
-            <div id="userAuthOverlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); z-index: 100; display: none; align-items: center; justify-content: center; flex-direction: column;">
-                <h3 style="margin-bottom: 0.5rem;">👤 Login / Registration 👤</h3>
-                <p style="font-size: 0.8rem; margin-bottom: 1rem;">You can't change your username later</p>
-                <input type="text" id="loginUser" placeholder="Username" class="card" style="margin-bottom: 0.625rem; padding: 0.625rem; width: 250px;">
-                <input type="password" id="loginPass" placeholder="Personal password" class="card" style="margin-bottom: 1rem; padding: 0.625rem; width: 250px;">
-                <button id="userAuthBtn" class="card" style="padding: 0.625rem 1.25rem; cursor: pointer;">Login</button>
+            <div id="userAuthOverlay" class="overlay" style="display: none;">
+                <h3>👤 Login / Registration 👤</h3>
+                <p class="auth-subtext">You can't change your username later</p>
+                <input type="text" id="loginUser" placeholder="Username" class="card user-input" aria-label="Password">
+                <input type="password" id="loginPass" placeholder="Personal password" class="card user-input" aria-label="Password">
+                <button id="userAuthBtn" class="card auth-btn">Login</button>
             </div>
 
             <div id="chatContent" style="display: none;">
-                <div id="sidebar" style="width: 30%; float: left; border-right: var(--border-width) solid var(--main-dark); padding-right: 1rem; box-sizing: border-box;">
-                    <input type="text" id="chatSearch" placeholder="@user or #group" class="card" style="width: 100%; padding: 0.5rem; margin-bottom: 1rem; font-size: 0.8rem;">
-                    <button id="createGroupBtn" class="card" style="width: 100%; font-size: 0.7rem; margin-bottom: 1rem; padding: 0.5rem; cursor: pointer;">+ Group +</button>
-                    <div id="activeChatsList" style="height: 350px; overflow-y: auto; padding-right: 5px;"></div>
+                <div id="sidebar">
+                    <input type="text" id="chatSearch" placeholder="@user or #group" class="card search-input" aria-label="Password">
+                    <button id="createGroupBtn" class="card group-btn">+ Group +</button>
+                    <div id="activeChatsList"></div>
                 </div>
 
-                <div id="mainChat" style="width: 70%; float: left; padding-left: 1rem; box-sizing: border-box;">
-                    <h4 id="chatTitle" style="margin-bottom: 1rem; border-bottom: 1px solid var(--main-dark);">Select a chat</h4>
-                    <div id="chatBox" style="height: 320px; overflow-y: auto; border: 1px solid var(--main-dark); padding: 0.625rem; background: #fff; margin-bottom: 1rem;"></div>
-
-                    <div style="position: relative;">
-                        <input type="text" id="msgInput" placeholder="Message..." class="card" style="width: 80%; padding: 0.625rem;">
-                        <button id="sendBtn" class="card" style="width: 18%; padding: 0.625rem; float: right; cursor: pointer;">➜</button>
+                <div id="mainChat">
+                    <h4 id="chatTitle">Select a chat</h4>
+                    <div id="chatBox"></div>
+                    <div class="input-row">
+                        <input type="text" id="msgInput" placeholder="Message..." class="card" aria-label="Password">
+                        <button id="sendBtn" class="card">➜</button>
                     </div>
                 </div>
-                <div style="clear: both;"></div> </div>
-
-            <script type="module">
-                import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-                import { getDatabase, ref, push, onValue, set, get, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
-
-                const app = initializeApp(firebaseConfig);
-                const db = getDatabase(app);
-                let currentUser = null;
-                let currentChatId = null;
-
-                // Site Password
-                document.getElementById('siteAuthBtn').onclick = () => {
-                    if (document.getElementById('sitePassInput').value === "openchat") {
-                        document.getElementById('siteAuthOverlay').style.display = 'none';
-                        document.getElementById('userAuthOverlay').style.display = 'flex';
-                    } else { alert("Wrong password!"); }
-                };
-
-                // Login + Auto-registration
-                document.getElementById('userAuthBtn').onclick = async () => {
-                    let uName = document.getElementById('loginUser').value.trim().replace('@', '');
-                    const uPass = document.getElementById('loginPass').value.trim();
-                    if (uName.length < 2 || !uPass) return alert("Fill in everything!");
-
-                    uName = '@' + uName;
-                    const userRef = ref(db, 'users/' + uName.replace('@', ''));
-                    const snap = await get(userRef);
-
-                    if (snap.exists()) {
-                        if (snap.val().pass === uPass) { proceed(uName); }
-                        else { alert("Nickname taken, wrong password!"); }
-                    } else {
-                        await set(userRef, { pass: uPass });
-                        proceed(uName);
-                    }
-                };
-
-                function proceed(user) {
-                    currentUser = user;
-                    document.getElementById('userAuthOverlay').style.display = 'none';
-                    document.getElementById('chatContent').style.display = 'block';
-                    loadActiveChats();
-                }
-
-                // Search (auto-at)
-                document.getElementById('chatSearch').onkeydown = (e) => {
-                    if (e.key === 'Enter') {
-                        let val = e.target.value.trim();
-                        if (!val) return;
-                        if (!val.startsWith('@') && !val.startsWith('#')) val = '@' + val;
-                        openChat(val);
-                        e.target.value = '';
-                    }
-                };
-
-                document.getElementById('createGroupBtn').onclick = () => {
-                    let g = prompt("Group name:");
-                    if (g) openChat('#' + g.replace('#', ''));
-                };
-
-                function openChat(id) {
-                    currentChatId = id;
-                    document.getElementById('chatTitle').innerText = "Chat: " + id;
-
-                    let dbId = id.startsWith('@')
-                        ? [currentUser, id].sort().join('_').replace(/@/g, '')
-                        : id.replace('#', 'group_');
-
-                    onValue(ref(db, 'messages/' + dbId), (snap) => {
-                        const box = document.getElementById('chatBox');
-                        box.innerHTML = '';
-                        const data = snap.val();
-                        if (data) {
-                            Object.values(data).forEach(m => {
-                                const div = document.createElement('div');
-                                div.style.marginBottom = "0.5rem";
-                                div.style.fontSize = "0.9rem";
-                                div.innerHTML = `<b style="color:var(--link)">${m.user}:</b> ${m.text}`;
-                                box.appendChild(div);
-                            });
-                            box.scrollTop = box.scrollHeight;
-                        }
-                    });
-                }
-
-                const sendMsg = () => {
-                    const inp = document.getElementById('msgInput');
-                    const txt = inp.value.trim();
-                    if (!txt || !currentChatId) return;
-
-                    let dbId = currentChatId.startsWith('@')
-                        ? [currentUser, currentChatId].sort().join('_').replace(/@/g, '')
-                        : currentChatId.replace('#', 'group_');
-
-                    push(ref(db, 'messages/' + dbId), {
-                        user: currentUser,
-                        text: txt,
-                        timestamp: serverTimestamp()
-                    });
-
-                    set(ref(db, `active_chats/${currentUser.replace('@','')}/${dbId}`), {title: currentChatId});
-                    if(currentChatId.startsWith('@')) {
-                        set(ref(db, `active_chats/${currentChatId.replace('@','')}/${dbId}`), {title: currentUser});
-                    }
-                    inp.value = '';
-                };
-
-                document.getElementById('sendBtn').onclick = sendMsg;
-                document.getElementById('msgInput').onkeydown = (e) => { if(e.key === 'Enter') sendMsg(); };
-
-                function loadActiveChats() {
-                    onValue(ref(db, `active_chats/${currentUser.replace('@','')}`), (snap) => {
-                        const list = document.getElementById('activeChatsList');
-                        list.innerHTML = '<p style="font-size:0.7rem; margin-bottom:0.5rem;">Chats: </p>';
-                        const data = snap.val();
-                        if (data) {
-                            Object.entries(data).forEach(([id, info]) => {
-                                const d = document.createElement('div');
-                                d.className = 'card';
-                                d.style.cssText = 'cursor:pointer; padding:0.4rem; margin-bottom:0.5rem; font-size:0.8rem;';
-                                d.innerText = info.title;
-                                d.onclick = () => openChat(info.title);
-                                list.appendChild(d);
-                            });
-                        }
-                    });
-                }
-            </script>
+                <div style="clear: both;"></div>
+            </div>
         </div>
 
         <div id="about" class="tab-pane active">
@@ -190,67 +61,35 @@
             <section>
                 <h3><i class="fa-solid fa-code"></i> Programming Languages & Tech</h3>
                 <div class="grid">
-                    <div class="card">
-                        <i class="fa-brands fa-java"></i>
-                        <h3>Java</h3>
-                        <p>Main Language</p>
-                    </div>
-                    <div class="card">
-                        <i class="fa-brands fa-python"></i>
-                        <h3>Python</h3>
-                        <p>Good knowledge</p>
-                    </div>
-                    <div class="card">
-                        <i class="fa-solid fa-c"></i><i class="fa-solid fa-hashtag"></i>
-                        <h3>C#</h3>
-                        <p>Learning...</p>
-                    </div>
-                    <div class="card">
-                        <i class="fa-solid fa-c"></i><i class="fa-solid fa-plus"></i><i class="fa-solid fa-plus"></i>
-                        <h3>C++</h3>
-                        <p>Learning...</p>
-                    </div>
+                    <div class="card"><i class="fa-brands fa-java"></i><h3>Java</h3><p>Main Language</p></div>
+                    <div class="card"><i class="fa-brands fa-python"></i><h3>Python</h3><p>Good knowledge</p></div>
+                    <div class="card"><i class="fa-solid fa-hashtag"></i><h3>C#</h3><p>Learning...</p></div>
+                    <div class="card"><i class="fa-solid fa-plus"></i><h3>C++</h3><p>Learning...</p></div>
                 </div>
             </section>
 
-            <section style="margin-top: 5vh;">
+            <section class="section-margin">
                 <h3><i class="fa-solid fa-gears"></i> Projects</h3>
-                <div class="card" onclick="document.querySelector('.tab[data-target=\'downloads\']').click();">
+                <div class="card project-trigger" onclick="document.querySelector('.tab[data-target=\'downloads\']').click();">
                     <i class="fa-solid fa-folder-open"></i>
                     <h3>My Projects</h3>
                     <p>Click to see downloads</p>
                 </div>
             </section>
-            <section style="margin-top: 5vh">
+
+            <section class="section-margin">
                 <h3><i class="fa-solid fa-user-astronaut"></i> Who am I?</h3>
                 <div class="grid">
+                    <div class="card"><h3><i class="fa-solid fa-id-card"></i> Name: </h3><p>Lev Netreba</p></div>
+                    <div class="card"><h3><i class="fa-solid fa-cake-candles"></i> Birth Date: </h3><p>27.10.2012</p></div>
                     <div class="card">
-                        <p>
-                        <h3><i class="fa-solid fa-id-card"></i> Name: </h3>Lev Netreba</p>
-                    </div>
-                    <div class="card">
-                        <p>
-                        <h3><i class="fa-solid fa-cake-candles"></i> Birth Date: </h3>27.10.2012</p>
-                    </div>
-                    <div class="card">
-                        <p>
                         <h3><i class="fa-solid fa-language"></i> Languages: </h3>
                         <b> I Know:</b>
-                        <ul id="langs">
-                            <li> German</li>
-                            <li> English</li>
-                            <li> Ukrainian</li>
-                            <li> Russian</li>
-                        </ul>
+                        <ul id="langs"><li> German</li><li> English</li><li> Ukrainian</li><li> Russian</li></ul>
                         <b> I Learn:</b>
-                        <ul id="nolangs">
-                            <li> Japanese</li>
-                            <li> Latin</li>
-                        </ul>
-                        </p>
+                        <ul id="nolangs"><li> Japanese</li><li> Latin</li></ul>
                     </div>
                     <div class="card">
-                        <p>
                         <h3><i class="fa-solid fa-icons"></i> Hobbies: </h3>
                         <ul>
                             <li><i class="fa-solid fa-keyboard"></i>Programming</li>
@@ -258,19 +97,16 @@
                             <li><i class="fa-solid fa-language"></i>Conlanging</li>
                             <li><i class="fa-solid fa-calculator"></i>Math</li>
                         </ul>
-                        </p>
                     </div>
-                    <div class="card">
-                        <p>
-                        <h3><i class="fa-brands fa-linux"></i> OS: </h3> Arch Linux</p>
-                    </div>
+                    <div class="card"><h3><i class="fa-brands fa-linux"></i> OS: </h3><p>Arch Linux</p></div>
                 </div>
             </section>
         </div>
+
         <div id="downloads" class="tab-pane">
             <h2>Downloads</h2>
             <div class="card project-item">
-                <a href="Projects/GenLang.jar" download="GenLang.jar" style="text-decoration: none; color: inherit;">
+                <a href="Projects/GenLang.jar" download="GenLang.jar" class="download-link">
                     <i class="fa-solid fa-file-code"></i>
                     <h3>GenLang</h3>
                     <p>An app for my Conlang</p>
@@ -282,28 +118,14 @@
         <div id="links" class="tab-pane">
             <h2>Links</h2>
             <div class="grid">
-                <a href="https://github.com/thelevnet" class="link-card">
-                    <div class="card">
-                        <i class="fa-brands fa-github"></i>
-                        <h3>GitHub</h3>
-                    </div>
-                </a>
-                <a href="mailto:dev@lev-net.xyz" class="link-card">
-                    <div class="card">
-                        <i class="fa-solid fa-envelope"></i>
-                        <h3>Mail</h3>
-                    </div>
-                </a>
-                <a href="https://t.me/thelevnet" class="link-card">
-                    <div class="card">
-                        <i class="fa-brands fa-telegram"></i>
-                        <h3>Telegram</h3>
-                    </div>
-                </a>
+                <a href="https://github.com/thelevnet" class="link-card"><div class="card"><i class="fa-brands fa-github"></i><h3>GitHub</h3></div></a>
+                <a href="mailto:dev@lev-net.xyz" class="link-card"><div class="card"><i class="fa-solid fa-envelope"></i><h3>Mail</h3></div></a>
+                <a href="https://t.me/thelevnet" class="link-card"><div class="card"><i class="fa-brands fa-telegram"></i><h3>Telegram</h3></div></a>
             </div>
         </div>
     </div>
 </div>
 <script src="js/index.js"></script>
+<script type="module" src="js/chat.js"></script>
 </body>
 </html>

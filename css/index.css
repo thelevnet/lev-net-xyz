@@ -1,17 +1,11 @@
 :root {
     --bg-color: #fffbee;
     --main-dark: #272529;
-    /* Границы лучше оставить в px или сделать очень маленькими в rem, 
-       чтобы они не превращались в кашу на мобилках */
     --border-width: 3px;
     --link: #1cb1c5;
 }
 
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
+* { margin: 0; padding: 0; box-sizing: border-box; }
 
 body {
     background-color: var(--bg-color);
@@ -20,112 +14,50 @@ body {
     display: flex;
     justify-content: center;
     min-height: 100vh;
-    /* 40px -> 2.5rem, 20px -> 1.25rem */
     padding: 2.5rem 1.25rem;
-    line-height: 1.2; /* Добавил для читаемости */
+    line-height: 1.2;
 }
 
-img {
-    border-radius: 20%;
-}
-.wrapper {
-    width: 100%;
-    /* 800px -> 50rem */
-    max-width: 50rem;
-    display: flex;
-    flex-direction: column;
-    /* 20px -> 1.25rem */
-    gap: 1.25rem;
-}
+.wrapper { width: 100%; max-width: 50rem; display: flex; flex-direction: column; gap: 1.25rem; }
 
-.Header {
-    border-bottom: var(--main-dark) var(--border-width) solid;
-    /* 10px -> 0.625rem */
-    padding-bottom: 0.625rem;
-}
+.Header { border-bottom: var(--main-dark) var(--border-width) solid; padding-bottom: 0.625rem; }
 
 .Tabs {
     display: flex;
     gap: 1.875rem;
     overflow-x: auto;
     white-space: nowrap;
-    padding-bottom: 0.75rem; /* Отступ для скроллбара, чтобы не слипался с текстом */
-
-    /* Для Firefox: делаем его заметным */
+    padding-bottom: 0.75rem;
     scrollbar-width: thin;
-    scrollbar-color: var(--main-dark) #e2decb; /* Ползунок и дорожка */
+    scrollbar-color: var(--main-dark) #e2decb;
 }
 
-/* Для Chrome, Safari и Edge: настраиваем всё руками */
-.Tabs::-webkit-scrollbar {
-    height: 6px; /* Ширина полоски, чтобы её было видно */
-    display: block; /* Гарантируем, что она не скрыта */
-}
-
-.Tabs::-webkit-scrollbar-track {
-    background: #e2decb; /* Чуть темнее твоего фона, чтобы была видна дорожка */
-    border-radius: 3px;
-}
-
-.Tabs::-webkit-scrollbar-thumb {
-    background-color: var(--main-dark); /* Сам ползунок — черный как твой текст */
-    border-radius: 3px;
-    border: 1px solid #e2decb; /* Небольшой зазор, чтобы выглядело аккуратно */
-}
-
-.tab {
-    flex: 0 0 auto; /* Чтобы табы не сжимались, заставляя скролл работать */
-}
-
-ul {
-    list-style: none;
-    padding-left: 0.3125rem;
-}
-
-li {
-    display: flex;
-    /* 10px -> 0.625rem */
-    gap: 0.625rem;
-    margin-bottom: 0.625rem;
-}
-
-li::before {
-    content: "";
-    color: var(--main-dark);
-    font-weight: bold;
-}
-/* Убираем стандартные точки у списка */
-/* Настраиваем иконку */
-#langs li::before {
-    content: "\f058"; /* Unicode для circle-check */
-    font-family: "Font Awesome 6 Free"; /* Важно: в кавычках и точно как в библиотеке */
-}
-#nolangs li::before {
-    content: "\f057";
-    font-family: "Font Awesome 6 Free";
-}
-
-.tab:hover {
-    opacity: 0.7;
-}
-
-.tab.active {
-    /* 2px -> 0.125rem */
-    border-bottom: var(--main-dark) 0.125rem solid;
-}
-
-.tab-pane {
-    display: none;
-    animation: fadeIn 0.3s ease;
-}
-
-.tab-pane.active {
+/* Scrollbars */
+.Tabs::-webkit-scrollbar, #chatBox::-webkit-scrollbar, #activeChatsList::-webkit-scrollbar {
+    height: 6px;
+    width: 6px;
     display: block;
 }
+.Tabs::-webkit-scrollbar-track, #chatBox::-webkit-scrollbar-track, #activeChatsList::-webkit-scrollbar-track {
+    background: #e2decb;
+    border-radius: 3px;
+}
+.Tabs::-webkit-scrollbar-thumb, #chatBox::-webkit-scrollbar-thumb, #activeChatsList::-webkit-scrollbar-thumb {
+    background-color: var(--main-dark);
+    border-radius: 3px;
+    border: 1px solid #e2decb;
+}
+
+.tab { flex: 0 0 auto; cursor: pointer; }
+.tab:hover { opacity: 0.7; }
+.tab.active { border-bottom: var(--main-dark) 0.125rem solid; }
+
+/* Content & Cards */
+.tab-pane { display: none; animation: fadeIn 0.3s ease; }
+.tab-pane.active { display: block; }
 
 .grid {
     display: grid;
-    /* 250px -> 15.625rem */
     grid-template-columns: repeat(auto-fit, minmax(15.625rem, 1fr));
     gap: 1.25rem;
     margin-top: 1.25rem;
@@ -139,18 +71,126 @@ li::before {
 }
 
 .card:hover {
-    /* 5px -> 0.3125rem */
     transform: translate(-0.3125rem, -0.3125rem);
     box-shadow: 0.3125rem 0.3125rem 0 var(--main-dark);
 }
 
-a {
-    color: var(--link);
-    text-decoration: none;
+/* --- CHAT SECTION --- */
+.chat-pane-custom {
+    height: 600px; /* Фиксированная высота всего окна чата */
+    border: var(--border-width) solid var(--main-dark);
+    background: var(--bg-color);
+    color: var(--main-dark);
+    position: relative;
+    padding: 1.25rem;
+    overflow: hidden;
 }
 
+#chatContent {
+    height: 100%;
+}
+
+#sidebar {
+    width: 30%;
+    height: 100%;
+    float: left;
+    border-right: var(--border-width) solid var(--main-dark);
+    padding-right: 1rem;
+    box-sizing: border-box;
+    overflow-y: auto; /* Если контактов будет дофига */
+}
+
+#mainChat {
+    width: calc(70% - 1px);
+    height: 100%;
+    float: left;
+    padding-left: 1rem;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+}
+
+#chatBox {
+    flex: 1; /* Занимает всё доступное место между заголовком и инпутом */
+    overflow-y: auto;
+    overflow-x: hidden;
+    margin-bottom: 1rem;
+    padding-right: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    word-wrap: break-word;
+}
+
+#chatTitle {
+    margin-bottom: 10px;
+    border-bottom: 1px solid var(--main-dark);
+    padding-bottom: 5px;
+}
+
+/* Inputs & Overlays */
+.overlay {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: var(--bg-color);
+    z-index: 101;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+}
+
+.auth-input { padding: 0.625rem; margin-bottom: 1rem; width: 200px; }
+.auth-btn { padding: 0.625rem 1.25rem; cursor: pointer; }
+.auth-subtext { font-size: 0.8rem; margin-bottom: 1rem; }
+.user-input { margin-bottom: 0.625rem; padding: 0.625rem; width: 250px; }
+
+.search-input, .sidebar-input {
+    width: 100% !important;
+    box-sizing: border-box;
+    margin-bottom: 10px;
+}
+
+.group-btn {
+    width: 100%;
+    padding: 5px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    font-size: 0.8rem;
+}
+
+.input-row {
+    display: flex;
+    gap: 10px;
+    margin-top: auto; /* Прижимает к низу mainChat */
+}
+
+.input-row input {
+    flex: 1;
+    padding: 0.625rem;
+}
+
+.input-row button {
+    width: 60px;
+    padding: 0.625rem;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Lists & Utilities */
+ul { list-style: none; padding-left: 0.3125rem; }
+li { display: flex; gap: 0.625rem; margin-bottom: 0.625rem; }
+#langs li::before { content: "\f058"; font-family: "Font Awesome 6 Free"; font-weight: 900; }
+#nolangs li::before { content: "\f057"; font-family: "Font Awesome 6 Free"; font-weight: 900; }
+
+a { color: var(--link); text-decoration: none; }
+.download-link { text-decoration: none; color: inherit; }
+.section-margin { margin-top: 5vh; }
+.project-trigger { cursor: pointer; }
+
 @keyframes fadeIn {
-    /* 5px -> 0.3125rem */
     from { opacity: 0; transform: translateY(0.3125rem); }
     to { opacity: 1; transform: translateY(0); }
 }

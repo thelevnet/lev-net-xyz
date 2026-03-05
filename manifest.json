@@ -1,21 +1,22 @@
 {
-  "name": "LNChat",
+  "name": "Lev Net Chat",
   "short_name": "LevNet",
-  "start_url": "./chat/",
+  "start_url": "/chat/",
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#000000",
-  "description": "Chat",
   "icons": [
     {
-      "src": "icon.png",
-      "sizes": "192x192",
-      "type": "Untitled278_Restored_20260207234431.png"
+      "src": "/logo.png",
+      "sizes": "2048x2048",
+      "type": "image/png",
+      "purpose": "any"
     },
     {
-      "src": "icon.png",
-      "sizes": "512x512",
-      "type": "Untitled278_Restored_20260207234431.png"
+      "src": "/logo.png",
+      "sizes": "2048x2048",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }

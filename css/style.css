@@ -32,6 +32,24 @@ body {
 .wrapper { width: 100%; max-width: 50rem; display: flex; flex-direction: column; gap: 1.25rem; }
 
 .Header { border-bottom: var(--text-1) 2px solid; padding-bottom: 0.625rem; }
+.Header {
+    display: flex;
+    justify-content: flex-start; /* Чтобы элементы шли по порядку */
+    align-items: center;
+}
+
+#logoutBtn {
+    background: var(--surface-2);
+    border-color: var(--border);
+    color: var(--text-2);
+    padding: 8px 12px;
+    margin-left: auto; /* Выталкивает кнопку максимально вправо */
+}
+
+#logoutBtn:hover {
+    color: #e74c3c; /* Красненький при наведении для стиля */
+    border-color: #e74c3c;
+}
 
 .Tabs {
     display: flex;

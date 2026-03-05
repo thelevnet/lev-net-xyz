@@ -7,6 +7,25 @@ let currentUser = null;
 let currentChatId = null;
 let chatRef = null;
 
+// 1. АВТОЛОГИН
+window.addEventListener('load', async () => {
+    const savedSitePass = localStorage.getItem('siteAuth');
+    const savedUser = localStorage.getItem('currentUser');
+
+    if (savedSitePass === "314" && savedUser) {
+        document.getElementById('siteAuthOverlay').style.display = 'none';
+        document.getElementById('userAuthOverlay').style.display = 'none';
+        proceed(savedUser);
+    }
+});
+
+// 2. КНОПКА ВЫХОДА
+document.getElementById('logoutBtn').onclick = () => {
+    localStorage.removeItem('currentUser');
+    localStorage.removeItem('siteAuth');
+    location.reload();
+};
+
 async function hashPassword(password) {
     const encoder = new TextEncoder();
     const data = encoder.encode(password);
@@ -21,8 +40,32 @@ const proceed = (user) => {
     loadActiveChats();
 };
 
-// ... твой код сверху (hashPassword, app, db и т.д.) без изменений
+// 3. ОБРАБОТЧИКИ АВТОРИЗАЦИИ (БЕЗ ДУБЛЕЙ)
+document.getElementById('siteAuthBtn').onclick = () => {
+    if (document.getElementById('sitePassInput').value === "314") {
+        localStorage.setItem('siteAuth', "314");
+        document.getElementById('siteAuthOverlay').style.display = 'none';
+        document.getElementById('userAuthOverlay').style.display = 'flex';
+    } else alert("Wrong password!");
+};
 
+document.getElementById('userAuthBtn').onclick = async () => {
+    let uName = document.getElementById('loginUser').value.trim().replace('@', '');
+    const uPassRaw = document.getElementById('loginPass').value.trim();
+    if (uName.length < 2 || !uPassRaw) return alert("Fill in everything!");
+
+    const uPass = await hashPassword(uPassRaw);
+    uName = '@' + uName;
+
+    const snap = await get(ref(db, 'users/' + uName.replace('@', '')));
+    if (snap.exists() && snap.val().pass !== uPass) return alert("Nickname taken, wrong password!");
+    if (!snap.exists()) await set(ref(db, 'users/' + uName.replace('@', '')), { pass: uPass });
+
+    localStorage.setItem('currentUser', uName); // Сохраняем ник
+    proceed(uName);
+};
+
+// 4. ЛОГИКА ЧАТА
 function loadActiveChats() {
     onValue(ref(db, `active_chats/${currentUser.replace('@','')}`), (snap) => {
         const list = document.getElementById('activeChatsList');
@@ -31,9 +74,7 @@ function loadActiveChats() {
         if (data) {
             Object.entries(data).forEach(([id, info]) => {
                 const d = document.createElement('div');
-                // Добавляем класс chat-item для того самого "жмяканья"
                 d.className = 'chat-item';
-                // Убрал инлайновые стили, они теперь в CSS
                 d.innerText = info.title;
                 if (currentChatId === info.title) d.classList.add('active');
                 d.onclick = () => openChat(info.title);
@@ -42,18 +83,6 @@ function loadActiveChats() {
         }
     });
 }
-
-let newMessageCount = 0;
-let lastReadTimestamp = Date.now();
-
-// Следим, когда пользователь смотрит в чат
-document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) {
-        newMessageCount = 0;
-        lastReadTimestamp = Date.now();
-        document.title = "lev.net / chat";
-    }
-});
 
 function openChat(id) {
     if (chatRef) off(chatRef);
@@ -72,47 +101,27 @@ function openChat(id) {
         const data = snap.val();
         if (data) {
             let lastUser = null;
-            let lastDate = null; // Флаг для даты
-
+            let lastDate = null;
             Object.values(data).forEach(m => {
                 const isMe = m.user === currentUser;
                 const date = m.timestamp ? new Date(m.timestamp) : new Date();
+                const currentDateStr = `${date.getDate().toString().padStart(2, '0')}.${(date.getMonth() + 1).toString().padStart(2, '0')}.${date.getFullYear()}`;
 
-                // Формируем строку даты DD.MM.YYYY
-                const day = date.getDate().toString().padStart(2, '0');
-                const month = (date.getMonth() + 1).toString().padStart(2, '0');
-                const year = date.getFullYear();
-                const currentDateStr = `${day}.${month}.${year}`;
-
-                // Если день сменился — рисуем палку
                 if (currentDateStr !== lastDate) {
-                    const dateDivider = document.createElement('div');
-                    dateDivider.className = 'date-divider';
-                    dateDivider.innerHTML = `<span>${currentDateStr}</span>`;
-                    box.appendChild(dateDivider);
+                    const div = document.createElement('div');
+                    div.className = 'date-divider';
+                    div.innerHTML = `<span>${currentDateStr}</span>`;
+                    box.appendChild(div);
                     lastDate = currentDateStr;
-                    lastUser = null; // Сбрасываем автора, чтобы имя показалось после даты
+                    lastUser = null;
                 }
 
-                const timeStr = date.getHours().toString().padStart(2, '0') + ':' +
-                                date.getMinutes().toString().padStart(2, '0');
-
+                const timeStr = date.getHours().toString().padStart(2, '0') + ':' + date.getMinutes().toString().padStart(2, '0');
                 const wrapper = document.createElement('div');
                 wrapper.className = `message-wrapper ${isMe ? 'sent' : 'received'}`;
 
-                let authorHtml = '';
-                if (m.user !== lastUser) {
-                    authorHtml = `<div class="msg-name">${isMe ? '' : m.user}</div>`;
-                }
-
-                wrapper.innerHTML = `
-                    <div class="message">
-                        ${authorHtml}
-                        <div class="msg-text">${m.text}</div>
-                        <div class="msg-time">${timeStr}</div>
-                    </div>
-                `;
-
+                let authorHtml = (m.user !== lastUser) ? `<div class="msg-name">${isMe ? '' : m.user}</div>` : '';
+                wrapper.innerHTML = `<div class="message">${authorHtml}<div class="msg-text">${m.text}</div><div class="msg-time">${timeStr}</div></div>`;
                 box.appendChild(wrapper);
                 lastUser = m.user;
             });
@@ -120,8 +129,6 @@ function openChat(id) {
         }
     });
 }
-
-// ... остальной код (sendMsg, клики и т.д.) оставляй как был
 
 const sendMsg = async () => {
     const inp = document.getElementById('msgInput');
@@ -131,73 +138,35 @@ const sendMsg = async () => {
     const isGroup = currentChatId.startsWith('#');
     const targetId = currentChatId.replace(/[@#]/g, '');
 
-    // Финальная проверка перед отправкой
     if (!isGroup) {
         const userSnap = await get(ref(db, 'users/' + targetId));
-        if (!userSnap.exists()) return alert("Юзер испарился");
+        if (!userSnap.exists()) return alert("User not found");
     }
 
     let dbId = isGroup ? 'group_' + targetId : [currentUser, currentChatId].sort().join('_').replace(/@/g, '');
 
     push(ref(db, 'messages/' + dbId), { user: currentUser, text: txt, timestamp: serverTimestamp() });
     set(ref(db, `active_chats/${currentUser.replace('@','')}/${dbId}`), {title: currentChatId});
+    if(!isGroup) set(ref(db, `active_chats/${targetId}/${dbId}`), {title: currentUser});
 
-    if(!isGroup) {
-        set(ref(db, `active_chats/${targetId}/${dbId}`), {title: currentUser});
-    }
     inp.value = '';
+    document.getElementById('sendBtn').classList.remove('active');
 };
 
+// 5. ИНТЕРФЕЙСНЫЕ СОБЫТИЯ
 document.getElementById('menuToggle').onclick = () => document.getElementById('sidebar').classList.toggle('hidden');
 document.getElementById('sendBtn').onclick = sendMsg;
 document.getElementById('msgInput').onkeydown = (e) => { if(e.key === 'Enter') sendMsg(); };
 
-document.getElementById('siteAuthBtn').onclick = () => {
-    if (document.getElementById('sitePassInput').value === "314") {
-        document.getElementById('siteAuthOverlay').style.display = 'none';
-        document.getElementById('userAuthOverlay').style.display = 'flex';
-    } else alert("Wrong password!");
-};
-
-document.getElementById('userAuthBtn').onclick = async () => {
-    let uName = document.getElementById('loginUser').value.trim().replace('@', '');
-    const uPassRaw = document.getElementById('loginPass').value.trim();
-    if (uName.length < 2 || !uPassRaw) return alert("Fill in everything!");
-    const uPass = await hashPassword(uPassRaw);
-    uName = '@' + uName;
-    const snap = await get(ref(db, 'users/' + uName.replace('@', '')));
-    if (snap.exists() && snap.val().pass !== uPass) return alert("Nickname taken, wrong password!");
-    if (!snap.exists()) await set(ref(db, 'users/' + uName.replace('@', '')), { pass: uPass });
-    proceed(uName);
-};
-
-// Заменяем обработчик поиска
 document.getElementById('chatSearch').onkeydown = async (e) => {
     if (e.key === 'Enter') {
         let val = e.target.value.trim();
         if (!val) return;
-
         const isGroup = val.startsWith('#');
         const cleanId = val.replace(/[@#]/g, '');
-
-        if (isGroup) {
-            // Для групп: проверяем, есть ли уже сообщения в этой группе
-            // или создана ли она в ветке groups
-            const groupSnap = await get(ref(db, 'messages/group_' + cleanId));
-            if (groupSnap.exists()) {
-                openChat('#' + cleanId);
-            } else {
-                alert("This group doesn't exist");
-            }
-        } else {
-            // Для юзеров: лезем в базу юзеров
-            const userSnap = await get(ref(db, 'users/' + cleanId));
-            if (userSnap.exists()) {
-                openChat('@' + cleanId);
-            } else {
-                alert("This user doesn't exist");
-            }
-        }
+        const path = isGroup ? 'messages/group_' + cleanId : 'users/' + cleanId;
+        const snap = await get(ref(db, path));
+        if (snap.exists()) openChat(val); else alert("Not found");
         e.target.value = '';
     }
 };
@@ -205,31 +174,16 @@ document.getElementById('chatSearch').onkeydown = async (e) => {
 document.getElementById('createGroupBtn').onclick = async () => {
     let g = prompt("Group name:").trim().replace(/#/, '');
     if (!g) return;
-
     const gRef = ref(db, 'messages/group_' + g);
     const snap = await get(gRef);
-
     if (!snap.exists()) {
-        // Создаем системное сообщение, чтобы ветка появилась в БД
-        await push(gRef, {
-            user: "System",
-            text: `Group #${g} created by ${currentUser}`,
-            timestamp: serverTimestamp()
-        });
+        await push(gRef, { user: "System", text: `Group #${g} created`, timestamp: serverTimestamp() });
     }
     openChat('#' + g);
 };
 
-const msgInput = document.getElementById('msgInput');
-const sendBtn = document.getElementById('sendBtn');
-
-msgInput.addEventListener('input', () => {
-    if (msgInput.value.trim().length > 0 && currentChatId) {
-        sendBtn.classList.add('active');
-    } else {
-        sendBtn.classList.remove('active');
-    }
+document.getElementById('msgInput').addEventListener('input', (e) => {
+    const btn = document.getElementById('sendBtn');
+    if (e.target.value.trim().length > 0 && currentChatId) btn.classList.add('active');
+    else btn.classList.remove('active');
 });
-
-// В функцию sendMsg в самый конец добавь строку, чтобы кнопка тухла после отправки:
-// sendBtn.classList.remove('active');

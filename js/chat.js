@@ -21,6 +21,8 @@ const proceed = (user) => {
     loadActiveChats();
 };
 
+// ... твой код сверху (hashPassword, app, db и т.д.) без изменений
+
 function loadActiveChats() {
     onValue(ref(db, `active_chats/${currentUser.replace('@','')}`), (snap) => {
         const list = document.getElementById('activeChatsList');
@@ -29,8 +31,11 @@ function loadActiveChats() {
         if (data) {
             Object.entries(data).forEach(([id, info]) => {
                 const d = document.createElement('div');
-                d.className = 'card'; d.style.cssText = 'cursor:pointer; padding:0.4rem; margin-bottom:0.5rem; font-size:0.8rem;';
+                // Добавляем класс chat-item для того самого "жмяканья"
+                d.className = 'chat-item';
+                // Убрал инлайновые стили, они теперь в CSS
                 d.innerText = info.title;
+                if (currentChatId === info.title) d.classList.add('active');
                 d.onclick = () => openChat(info.title);
                 list.appendChild(d);
             });
@@ -38,11 +43,25 @@ function loadActiveChats() {
     });
 }
 
+let newMessageCount = 0;
+let lastReadTimestamp = Date.now();
+
+// Следим, когда пользователь смотрит в чат
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+        newMessageCount = 0;
+        lastReadTimestamp = Date.now();
+        document.title = "lev.net / chat";
+    }
+});
+
 function openChat(id) {
     if (chatRef) off(chatRef);
     currentChatId = id;
     document.getElementById('chatTitle').innerText = " " + id;
     if (window.innerWidth <= 600) document.getElementById('sidebar').classList.add('hidden');
+
+    loadActiveChats();
 
     let dbId = id.startsWith('@') ? [currentUser, id].sort().join('_').replace(/@/g, '') : id.replace('#', 'group_');
 
@@ -52,16 +71,57 @@ function openChat(id) {
         box.innerHTML = '';
         const data = snap.val();
         if (data) {
+            let lastUser = null;
+            let lastDate = null; // Флаг для даты
+
             Object.values(data).forEach(m => {
-                const div = document.createElement('div');
-                div.style.marginBottom = "0.5rem"; div.style.fontSize = "0.9rem";
-                div.innerHTML = `<b style="color:var(--link)">${m.user}:</b> ${m.text}`;
-                box.appendChild(div);
+                const isMe = m.user === currentUser;
+                const date = m.timestamp ? new Date(m.timestamp) : new Date();
+
+                // Формируем строку даты DD.MM.YYYY
+                const day = date.getDate().toString().padStart(2, '0');
+                const month = (date.getMonth() + 1).toString().padStart(2, '0');
+                const year = date.getFullYear();
+                const currentDateStr = `${day}.${month}.${year}`;
+
+                // Если день сменился — рисуем палку
+                if (currentDateStr !== lastDate) {
+                    const dateDivider = document.createElement('div');
+                    dateDivider.className = 'date-divider';
+                    dateDivider.innerHTML = `<span>${currentDateStr}</span>`;
+                    box.appendChild(dateDivider);
+                    lastDate = currentDateStr;
+                    lastUser = null; // Сбрасываем автора, чтобы имя показалось после даты
+                }
+
+                const timeStr = date.getHours().toString().padStart(2, '0') + ':' +
+                                date.getMinutes().toString().padStart(2, '0');
+
+                const wrapper = document.createElement('div');
+                wrapper.className = `message-wrapper ${isMe ? 'sent' : 'received'}`;
+
+                let authorHtml = '';
+                if (m.user !== lastUser) {
+                    authorHtml = `<div class="msg-name">${isMe ? '' : m.user}</div>`;
+                }
+
+                wrapper.innerHTML = `
+                    <div class="message">
+                        ${authorHtml}
+                        <div class="msg-text">${m.text}</div>
+                        <div class="msg-time">${timeStr}</div>
+                    </div>
+                `;
+
+                box.appendChild(wrapper);
+                lastUser = m.user;
             });
             box.scrollTop = box.scrollHeight;
         }
     });
 }
+
+// ... остальной код (sendMsg, клики и т.д.) оставляй как был
 
 const sendMsg = () => {
     const inp = document.getElementById('msgInput');
@@ -81,7 +141,7 @@ document.getElementById('sendBtn').onclick = sendMsg;
 document.getElementById('msgInput').onkeydown = (e) => { if(e.key === 'Enter') sendMsg(); };
 
 document.getElementById('siteAuthBtn').onclick = () => {
-    if (document.getElementById('sitePassInput').value === "openchat") {
+    if (document.getElementById('sitePassInput').value === "314") {
         document.getElementById('siteAuthOverlay').style.display = 'none';
         document.getElementById('userAuthOverlay').style.display = 'flex';
     } else alert("Wrong password!");

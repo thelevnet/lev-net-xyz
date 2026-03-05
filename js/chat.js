@@ -123,16 +123,28 @@ function openChat(id) {
 
 // ... остальной код (sendMsg, клики и т.д.) оставляй как был
 
-const sendMsg = () => {
+const sendMsg = async () => {
     const inp = document.getElementById('msgInput');
     const txt = inp.value.trim();
     if (!txt || !currentChatId) return;
 
-    let dbId = currentChatId.startsWith('@') ? [currentUser, currentChatId].sort().join('_').replace(/@/g, '') : currentChatId.replace('#', 'group_');
+    const isGroup = currentChatId.startsWith('#');
+    const targetId = currentChatId.replace(/[@#]/g, '');
+
+    // Финальная проверка перед отправкой
+    if (!isGroup) {
+        const userSnap = await get(ref(db, 'users/' + targetId));
+        if (!userSnap.exists()) return alert("Юзер испарился");
+    }
+
+    let dbId = isGroup ? 'group_' + targetId : [currentUser, currentChatId].sort().join('_').replace(/@/g, '');
 
     push(ref(db, 'messages/' + dbId), { user: currentUser, text: txt, timestamp: serverTimestamp() });
     set(ref(db, `active_chats/${currentUser.replace('@','')}/${dbId}`), {title: currentChatId});
-    if(currentChatId.startsWith('@')) set(ref(db, `active_chats/${currentChatId.replace('@','')}/${dbId}`), {title: currentUser});
+
+    if(!isGroup) {
+        set(ref(db, `active_chats/${targetId}/${dbId}`), {title: currentUser});
+    }
     inp.value = '';
 };
 
@@ -159,16 +171,65 @@ document.getElementById('userAuthBtn').onclick = async () => {
     proceed(uName);
 };
 
-document.getElementById('chatSearch').onkeydown = (e) => {
+// Заменяем обработчик поиска
+document.getElementById('chatSearch').onkeydown = async (e) => {
     if (e.key === 'Enter') {
         let val = e.target.value.trim();
         if (!val) return;
-        openChat(val.startsWith('@') || val.startsWith('#') ? val : '@' + val);
+
+        const isGroup = val.startsWith('#');
+        const cleanId = val.replace(/[@#]/g, '');
+
+        if (isGroup) {
+            // Для групп: проверяем, есть ли уже сообщения в этой группе
+            // или создана ли она в ветке groups
+            const groupSnap = await get(ref(db, 'messages/group_' + cleanId));
+            if (groupSnap.exists()) {
+                openChat('#' + cleanId);
+            } else {
+                alert("This group doesn't exist");
+            }
+        } else {
+            // Для юзеров: лезем в базу юзеров
+            const userSnap = await get(ref(db, 'users/' + cleanId));
+            if (userSnap.exists()) {
+                openChat('@' + cleanId);
+            } else {
+                alert("This user doesn't exist");
+            }
+        }
         e.target.value = '';
     }
 };
 
-document.getElementById('createGroupBtn').onclick = () => {
-    let g = prompt("Group name:");
-    if (g) openChat('#' + g.replace('#', ''));
+document.getElementById('createGroupBtn').onclick = async () => {
+    let g = prompt("Group name:").trim().replace(/#/, '');
+    if (!g) return;
+
+    const gRef = ref(db, 'messages/group_' + g);
+    const snap = await get(gRef);
+
+    if (!snap.exists()) {
+        // Создаем системное сообщение, чтобы ветка появилась в БД
+        await push(gRef, {
+            user: "System",
+            text: `Group #${g} created by ${currentUser}`,
+            timestamp: serverTimestamp()
+        });
+    }
+    openChat('#' + g);
 };
+
+const msgInput = document.getElementById('msgInput');
+const sendBtn = document.getElementById('sendBtn');
+
+msgInput.addEventListener('input', () => {
+    if (msgInput.value.trim().length > 0 && currentChatId) {
+        sendBtn.classList.add('active');
+    } else {
+        sendBtn.classList.remove('active');
+    }
+});
+
+// В функцию sendMsg в самый конец добавь строку, чтобы кнопка тухла после отправки:
+// sendBtn.classList.remove('active');

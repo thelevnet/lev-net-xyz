@@ -6,15 +6,7 @@
     <title>lev.net - Chat</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="../css/chat.css">
-    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-    <script>
-        window.OneSignalDeferred = window.OneSignalDeferred || [];
-        OneSignalDeferred.push(async function(OneSignal) {
-          await OneSignal.init({
-            appId: "d5f38a6d-03f6-4bb7-a789-1dd8b2a3925f",
-          });
-        });
-    </script>
+
 </head>
 <body>
 
@@ -53,7 +45,7 @@
             <div id="chatBox"></div>
             <div class="input-row">
                 <input type="text" id="msgInput" placeholder="Message..." class="card">
-                <button id="sendBtn" class="card">➜</button>
+                <button id="sendBtn" class="card"><i class="fa-solid fa-paper-plane"></i></button>
             </div>
         </div>
     </div>

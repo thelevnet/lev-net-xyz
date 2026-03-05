@@ -75,7 +75,32 @@ button.card:active, .chat-item:active { transform: translate(2px, 2px); box-shad
 
 #chatSearch, #createGroupBtn { margin-bottom: 1rem; width: 100%; }
 #msgInput { flex: 1; min-width: 0; }
-#sendBtn { width: 50px; background: var(--secondary); color: white; border: 2px solid var(--border); cursor: pointer; }
+/* Базовое состояние кнопки (тухлое) */
+#sendBtn {
+    width: 50px;
+    background: var(--secondary); /* Твой текущий цвет */
+    color: white;
+    border: 2px solid var(--border);
+    cursor: not-allowed;
+    opacity: 0.4; /* Вот она, тухлость */
+    filter: grayscale(0.5); /* Можно еще серости накинуть */
+    transition: all 0.2s ease;
+}
+
+/* Яркое состояние (когда можно отправлять) */
+#sendBtn.active {
+    opacity: 1;
+    filter: grayscale(0);
+    background: var(--link); /* Цвет как у твоих исходящих сообщений */
+    cursor: pointer;
+    box-shadow: 0 0 10px rgba(28, 177, 197, 0.4); /* Легкое свечение */
+    transform: scale(1.05); /* Чуть увеличим для акцента */
+}
+
+/* Эффект при нажатии на активную кнопку */
+#sendBtn.active:active {
+    transform: translate(2px, 2px) scale(1);
+}
 
 /* РАЗДЕЛИТЕЛЬ ДАТЫ */
 .date-divider {

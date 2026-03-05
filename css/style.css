@@ -84,7 +84,10 @@ body {
 }
 
 .card:hover {
-
+    opacity: 1;
+    background: var(--surface); /* Цвет как у твоих исходящих сообщений */
+    box-shadow: 0 0 10px rgba(28, 177, 197, 0.4); /* Легкое свечение */
+    transform: scale(1.03); /* Чуть увеличим для акцента */
 }
 
 ul { list-style: none; padding-left: 0.3125rem; }

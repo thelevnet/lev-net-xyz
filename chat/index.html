@@ -64,5 +64,20 @@
 
 <script src="../js/firebaseconf.js"></script>
 <script type="module" src="../js/chat.js"></script>
+<div id="msgMenu" class="card" style="display:none; position:fixed; z-index:10000; width:150px; padding:5px; flex-direction:column; gap:5px;">
+    <button onclick="copyMsg()" class="card" style="font-size:0.8rem; text-align:left;"><i class="fa-regular fa-copy"></i> Copy</button>
+    <button id="editBtn" class="card" style="font-size:0.8rem; text-align:left;"><i class="fa-regular fa-pen-to-square"></i> Edit</button>
+    <button id="delBtn" class="card" style="font-size:0.8rem; text-align:left; color:red;"><i class="fa-regular fa-trash-can"></i> Delete</button>
+</div>
+<div id="customModal" class="overlay" style="display: none; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);">
+    <div class="card" style="width: 300px; display: flex; flex-direction: column; gap: 15px; background: var(--surface);">
+        <h3 id="modalTitle" style="font-size: 1rem;">Action</h3>
+        <input type="text" id="modalInput" class="card" style="display: none; width: 100%;">
+        <div style="display: flex; gap: 10px; justify-content: flex-end;">
+            <button id="modalCancel" class="card" style="padding: 5px 15px;">Cancel</button>
+            <button id="modalConfirm" class="card" style="padding: 5px 15px; background: var(--link); color: white;">OK</button>
+        </div>
+    </div>
+</div>
 </body>
 </html>

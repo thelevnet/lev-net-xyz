@@ -6,6 +6,8 @@ const db = getDatabase(app);
 let currentUser = null;
 let currentChatId = null;
 let chatRef = null;
+let selectedMsgId = null;
+let selectedMsgText = null;
 
 
 // --- 1. ВСЕ ФУНКЦИИ (ОБЪЯВЛЯЕМ СРАЗУ) ---
@@ -52,37 +54,62 @@ function openChat(id) {
     document.getElementById('chatTitle').innerText = " " + id;
     if (window.innerWidth <= 600) document.getElementById('sidebar').classList.add('hidden');
     loadActiveChats();
+
     let dbId = id.startsWith('@') ? [currentUser, id].sort().join('_').replace(/@/g, '') : id.replace('#', 'group_');
     chatRef = ref(db, 'messages/' + dbId);
+
     onValue(chatRef, (snap) => {
         const box = document.getElementById('chatBox');
         box.innerHTML = '';
         const data = snap.val();
+
         if (data) {
             let lastUser = null, lastDate = null;
-            Object.values(data).forEach(m => {
+
+            // Используем entries, чтобы достать ID сообщения для удаления/редактирования
+            Object.entries(data).forEach(([msgKey, m]) => {
                 const isMe = m.user === currentUser;
                 const date = m.timestamp ? new Date(m.timestamp) : new Date();
                 const currentDateStr = `${date.getDate().toString().padStart(2, '0')}.${(date.getMonth() + 1).toString().padStart(2, '0')}.${date.getFullYear()}`;
+
                 if (currentDateStr !== lastDate) {
                     const div = document.createElement('div');
                     div.className = 'date-divider';
                     div.innerHTML = `<span>${currentDateStr}</span>`;
                     box.appendChild(div);
-                    lastDate = currentDateStr; lastUser = null;
+                    lastDate = currentDateStr;
+                    lastUser = null;
                 }
+
                 const timeStr = date.getHours().toString().padStart(2, '0') + ':' + date.getMinutes().toString().padStart(2, '0');
                 const wrapper = document.createElement('div');
                 wrapper.className = `message-wrapper ${isMe ? 'sent' : 'received'}`;
-                let content = m.text;
-                if (content && content.startsWith('IMG_URL:')) {
+
+                // Обработка контента (текст или картинка)
+                let content = m.text || '';
+                if (content.startsWith('IMG_URL:')) {
                     const url = content.replace('IMG_URL:', '');
                     content = `<img src="${url}" style="max-width:100%; border-radius:8px; cursor:pointer; display:block;" onclick="window.open('${url}')">`;
                 }
 
+                // Контекстное меню (ПК)
+                wrapper.oncontextmenu = (e) => showMenu(e, msgKey, m.text, isMe);
+
+                // Контекстное меню (Мобилки - лонг пресс)
+                let timer;
+                wrapper.ontouchstart = (e) => {
+                    timer = setTimeout(() => showMenu(e.touches[0], msgKey, m.text, isMe), 400);
+                };
+                wrapper.ontouchend = () => clearTimeout(timer);
+
                 let authorHtml = (m.user !== lastUser) ? `<div class="msg-name">${isMe ? '' : m.user}</div>` : '';
-                wrapper.innerHTML = `<div class="message">${authorHtml}<div class="msg-text">${content}</div><div class="msg-time">${timeStr}</div></div>`;
-                // КОНЕЦ ВСТАВКИ
+
+                wrapper.innerHTML = `
+                    <div class="message">
+                        ${authorHtml}
+                        <div class="msg-text">${content}</div>
+                        <div class="msg-time">${timeStr}</div>
+                    </div>`;
 
                 box.appendChild(wrapper);
                 lastUser = m.user;
@@ -217,4 +244,102 @@ const uploadImg = async (file) => {
     });
     const data = await res.json();
     return data.data.url; // Прямая ссылка на картинку
+};
+window.onclick = () => document.getElementById('msgMenu').style.display = 'none';
+
+const showMenu = (e, msgId, text, isMe) => {
+    // Останавливаем стандартное поведение
+    if (e.cancelable) e.preventDefault();
+    e.stopPropagation();
+
+    selectedMsgId = msgId;
+    selectedMsgText = text;
+
+    const menu = document.getElementById('msgMenu');
+
+    // Настройка видимости кнопок
+    document.getElementById('editBtn').style.display = isMe ? 'flex' : 'none';
+    document.getElementById('delBtn').style.display = isMe ? 'flex' : 'none';
+
+    // Временно показываем для замера
+    menu.style.display = 'flex';
+    menu.style.visibility = 'hidden';
+
+    const menuRect = menu.getBoundingClientRect();
+    const padding = 15; // Безопасный отступ от края экрана
+
+    let x = e.clientX || (e.touches ? e.touches[0].clientX : 0);
+    let y = e.clientY || (e.touches ? e.touches[0].clientY : 0);
+
+    // Проверка по горизонтали
+    if (x + menuRect.width > window.innerWidth) {
+        x = window.innerWidth - menuRect.width - padding;
+    }
+    if (x < padding) x = padding;
+
+    // Проверка по вертикали
+    if (y + menuRect.height > window.innerHeight) {
+        y = window.innerHeight - menuRect.height - padding;
+    }
+    if (y < padding) y = padding;
+
+    menu.style.left = `${x}px`;
+    menu.style.top = `${y}px`;
+    menu.style.visibility = 'visible';
+};
+
+// Копирование в буфер
+window.copyMsg = () => {
+    if (!selectedMsgText) return;
+    navigator.clipboard.writeText(selectedMsgText);
+    document.getElementById('msgMenu').style.display = 'none';
+};
+
+// Удаление
+document.getElementById('delBtn').onclick = async () => {
+    document.getElementById('msgMenu').style.display = 'none';
+    const confirmed = await showCustomModal("Delete this message?");
+    if (confirmed && selectedMsgId) {
+        let dbId = currentChatId.startsWith('#') ? 'group_' + currentChatId.replace('#', '') : [currentUser, currentChatId].sort().join('_').replace(/@/g, '');
+        set(ref(db, `messages/${dbId}/${selectedMsgId}`), null);
+    }
+};
+
+// Редактирование
+document.getElementById('editBtn').onclick = async () => {
+    document.getElementById('msgMenu').style.display = 'none';
+    const newText = await showCustomModal("Edit message", true, selectedMsgText);
+    if (newText !== null && newText.trim() !== "" && newText !== selectedMsgText) {
+        let dbId = currentChatId.startsWith('#') ? 'group_' + currentChatId.replace('#', '') : [currentUser, currentChatId].sort().join('_').replace(/@/g, '');
+        set(ref(db, `messages/${dbId}/${selectedMsgId}/text`), newText.trim());
+    }
+};
+
+// Закрытие меню при клике в любое другое место
+window.addEventListener('click', () => {
+    const menu = document.getElementById('msgMenu');
+    if (menu) menu.style.display = 'none';
+});
+
+
+const showCustomModal = (title, showInput = false, defaultValue = "") => {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('customModal');
+        const input = document.getElementById('modalInput');
+        document.getElementById('modalTitle').innerText = title;
+
+        input.style.display = showInput ? 'block' : 'none';
+        input.value = defaultValue;
+        modal.style.display = 'flex';
+
+        const close = (val) => {
+            modal.style.display = 'none';
+            document.getElementById('modalConfirm').onclick = null;
+            document.getElementById('modalCancel').onclick = null;
+            resolve(val);
+        };
+
+        document.getElementById('modalConfirm').onclick = () => close(showInput ? input.value : true);
+        document.getElementById('modalCancel').onclick = () => close(null);
+    });
 };

@@ -163,3 +163,23 @@ button.card:active, .chat-item:active { transform: translate(2px, 2px); box-shad
     #sidebar { position: absolute; left: 0; top: 0; z-index: 50; }
     #sidebar.hidden { transform: translateX(-100%); margin-left: 0; }
 }
+
+.message-wrapper {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+.msg-text {
+    user-select: text; /* Чтобы текст всё же можно было копировать вручную если надо */
+}
+
+#customModal {
+    transition: opacity 0.2s ease;
+}
+#customModal .card {
+    animation: modalShow 0.2s ease-out;
+}
+@keyframes modalShow {
+    from { transform: scale(0.9); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}

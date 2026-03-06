@@ -116,18 +116,20 @@ function openChat(id, targetMsgId = null) {
             });
 
             // Логика перехода к сообщению
-            if (targetMsgId) {
-                setTimeout(() => {
-                    const el = document.getElementById("msg-" + targetMsgId);
-                    if (el) {
-                        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        el.classList.add('glow-msg');
-                        setTimeout(() => el.classList.remove('glow-msg'), 2000);
-                    }
-                }, 200);
-            } else {
-                box.scrollTop = box.scrollHeight;
-            }
+        if (targetMsgId) {
+                    setTimeout(() => {
+                        const el = document.getElementById("msg-" + targetMsgId);
+                        if (el) {
+                            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            el.classList.add('glow-msg');
+                            setTimeout(() => el.classList.remove('glow-msg'), 2000);
+                        }
+                        // ВАЖНО: обнуляем, чтобы при новых сообщениях не кидало назад
+                        targetMsgId = null;
+                    }, 200);
+                } else {
+                    box.scrollTop = box.scrollHeight;
+                }
         } else {
             box.innerHTML = '<div style="text-align:center; opacity:0.5; margin-top:20px;">No messages yet</div>';
         }
@@ -170,6 +172,15 @@ const init = () => {
         area.style.height = 'auto';
         area.style.height = (area.scrollHeight) + 'px';
     });
+    document.getElementById('msgInput').addEventListener('input', (e) => {
+            const btn = document.getElementById('sendBtn');
+            // Убедись, что currentChatId не пустой и в инпуте не только пробелы
+            if (e.target.value.trim().length > 0 && currentChatId) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
 
     document.getElementById('logoutBtn').onclick = () => {
         localStorage.clear();

@@ -235,3 +235,42 @@ button.card:active, .chat-item:active { transform: translate(2px, 2px); box-shad
     animation: messageGlow 1.5s ease-out;
     border-radius: 8px;
 }
+
+/* Общие стили для всех скроллбаров в приложении */
+/* Вся полоса скролла */
+*::-webkit-scrollbar {
+    width: 6px;
+}
+
+/* Дорожка (фон) — делаем полностью прозрачной */
+*::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+/* Сам ползунок — серый, полупрозрачный и «скрытый» по умолчанию */
+*::-webkit-scrollbar-thumb {
+    background-color: rgba(128, 128, 128, 0); /* Полностью прозрачный */
+    border-radius: 10px;
+    transition: background-color 0.3s;
+}
+
+/* Проявляем скролл только при наведении на элемент (чаты, сообщения или инпут) */
+*:hover::-webkit-scrollbar-thumb {
+    background-color: rgba(128, 128, 128, 0.3); /* Становится серым и полупрозрачным */
+}
+
+/* Когда юзер тянет за сам скролл — делаем чуть темнее */
+*::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(128, 128, 128, 0.6) !important;
+}
+
+/* Фикс для Firefox */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+    transition: scrollbar-color 0.3s;
+}
+
+*:hover {
+    scrollbar-color: rgba(128, 128, 128, 0.3) transparent;
+}

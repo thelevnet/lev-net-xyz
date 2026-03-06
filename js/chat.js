@@ -7,6 +7,7 @@ let currentUser = null;
 let currentChatId = null;
 let chatRef = null;
 
+
 // --- 1. ВСЕ ФУНКЦИИ (ОБЪЯВЛЯЕМ СРАЗУ) ---
 
 async function hashPassword(password) {
@@ -73,8 +74,16 @@ function openChat(id) {
                 const timeStr = date.getHours().toString().padStart(2, '0') + ':' + date.getMinutes().toString().padStart(2, '0');
                 const wrapper = document.createElement('div');
                 wrapper.className = `message-wrapper ${isMe ? 'sent' : 'received'}`;
+                let content = m.text;
+                if (content && content.startsWith('IMG_URL:')) {
+                    const url = content.replace('IMG_URL:', '');
+                    content = `<img src="${url}" style="max-width:100%; border-radius:8px; cursor:pointer; display:block;" onclick="window.open('${url}')">`;
+                }
+
                 let authorHtml = (m.user !== lastUser) ? `<div class="msg-name">${isMe ? '' : m.user}</div>` : '';
-                wrapper.innerHTML = `<div class="message">${authorHtml}<div class="msg-text">${m.text}</div><div class="msg-time">${timeStr}</div></div>`;
+                wrapper.innerHTML = `<div class="message">${authorHtml}<div class="msg-text">${content}</div><div class="msg-time">${timeStr}</div></div>`;
+                // КОНЕЦ ВСТАВКИ
+
                 box.appendChild(wrapper);
                 lastUser = m.user;
             });
@@ -158,7 +167,6 @@ const init = () => {
         if (!g) return;
         const gRef = ref(db, 'messages/group_' + g);
         const snap = await get(gRef);
-        if (!snap.exists()) await push(gRef, { user: "System", text: `Group #${g} created`, timestamp: serverTimestamp() });
         openChat('#' + g);
     };
 
@@ -166,6 +174,29 @@ const init = () => {
         const btn = document.getElementById('sendBtn');
         btn.classList.toggle('active', e.target.value.trim().length > 0 && currentChatId);
     });
+    document.getElementById('imgInput').onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file || !currentChatId) return;
+
+        const btn = e.target.parentElement;
+        btn.style.opacity = '0.5'; // Визуальный лоадер
+
+        try {
+            const url = await uploadImg(file);
+            // Отправляем как обычное сообщение, но с пометкой или просто ссылкой
+            let dbId = currentChatId.startsWith('#') ? 'group_' + currentChatId.replace('#', '') : [currentUser, currentChatId].sort().join('_').replace(/@/g, '');
+            push(ref(db, 'messages/' + dbId), {
+                user: currentUser,
+                text: `IMG_URL:${url}`,
+                timestamp: serverTimestamp()
+            });
+        } catch (err) {
+            alert("Upload failed");
+        } finally {
+            btn.style.opacity = '1';
+            e.target.value = '';
+        }
+    };
 };
 
 // Запуск
@@ -174,3 +205,16 @@ if (document.readyState === 'loading') {
 } else {
     init();
 }
+
+const uploadImg = async (file) => {
+    const apiKey = 'dd65b7ceefe40d82481e19dd95070333';
+    const formData = new FormData();
+    formData.append('image', file);
+
+    const res = await fetch(`https://api.imgbb.com/1/upload?key=${apiKey}`, {
+        method: 'POST',
+        body: formData
+    });
+    const data = await res.json();
+    return data.data.url; // Прямая ссылка на картинку
+};

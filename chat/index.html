@@ -13,7 +13,6 @@
     <link rel="apple-touch-icon" href="/logo.png">
     <meta name="theme-color" content="#000000">
     <link rel="manifest" href="/manifest.json">
-
 </head>
 <body>
 
@@ -52,6 +51,10 @@
         <div id="mainChat">
             <div id="chatBox"></div>
             <div class="input-row">
+                <label for="imgInput" class="card" style="cursor:pointer; display:flex; align-items:center; justify-content:center; width:50px;">
+                    <i class="fa-regular fa-image"></i>
+                    <input type="file" id="imgInput" accept="image/*" style="display:none;">
+                </label>
                 <input type="text" id="msgInput" placeholder="Message..." class="card">
                 <button id="sendBtn" class="card"><i class="fa-solid fa-paper-plane"></i></button>
             </div>

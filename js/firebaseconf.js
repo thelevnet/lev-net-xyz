@@ -1,5 +1,5 @@
 // js/firebase-config.js
-const firebaseConfig = {
+export const firebaseConfig = {
     apiKey: "AIzaSyACwWS7Q03oipjC4issm3WIy8k_OkSiUiM",
     databaseURL: "https://levnetxyz-default-rtdb.europe-west1.firebasedatabase.app",
     authDomain: "levnetxyz.firebaseapp.com",

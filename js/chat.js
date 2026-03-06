@@ -1,24 +1,57 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getDatabase, ref, push, onValue, set, get, serverTimestamp, off } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+import { getMessaging, getToken } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging.js";
+const firebaseConfig = {
+    apiKey: "AIzaSyACwWS7Q03oipjC4issm3WIy8k_OkSiUiM",
+    databaseURL: "https://levnetxyz-default-rtdb.europe-west1.firebasedatabase.app",
+    authDomain: "levnetxyz.firebaseapp.com",
+    projectId: "levnetxyz",
+    storageBucket: "levnetxyz.firebasestorage.app",
+    messagingSenderId: "223875022110",
+    appId: "1:223875022110:web:8b4282b3ce3f19020cdd0f",
+    measurementId: "G-XK20LGP6FQ"
+};
 
+// --- Инициализация ---
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
+const messaging = getMessaging(app);
+
 let currentUser = null;
 let currentChatId = null;
-let currentChatRef = null; // Для off()
+let currentChatRef = null;
 let selectedMsgId = null;
 let selectedMsgText = null;
+let isFirstLoad = true;
 
-// --- 1. ВСЕ ФУНКЦИИ ---
+// --- Уведомления и Токены ---
+const saveTokenToDb = (token) => {
+    if (!currentUser) return;
+    const userPath = currentUser.replace('@', '');
+    // Используем хеш от токена как ключ, чтобы не дублировать
+    const tokenKey = btoa(token).substring(0, 20).replace(/\//g, '_');
+    set(ref(db, `users/${userPath}/tokens/${tokenKey}`), token);
+};
 
+getToken(messaging, { vapidKey: 'BCVfZS0S7FdKxMoCSPxRv-026OJjJUdidX1UdFJVtr3xO9nAK1-nx408bKbjChgjyh3U9KOwyjE2gcdFROVclPA' })
+    .then((token) => {
+        if (token) {
+            console.log("Token ok:", token);
+            saveTokenToDb(token);
+        }
+    }).catch(err => console.log('Messaging error:', err));
+
+if (Notification.permission !== "granted") {
+    Notification.requestPermission();
+}
+
+// --- Функции чата ---
 const translateText = async (pair, text) => {
     try {
         const res = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${pair}`);
         const data = await res.json();
         return data.responseData.translatedText;
-    } catch (e) {
-        return text;
-    }
+    } catch (e) { return text; }
 };
 
 async function hashPassword(password) {
@@ -32,6 +65,7 @@ function loadActiveChats() {
     if (!currentUser) return;
     onValue(ref(db, `active_chats/${currentUser.replace('@','')}`), (snap) => {
         const list = document.getElementById('activeChatsList');
+        list.innerHTML = '';
         const data = snap.val();
         if (data) {
             Object.entries(data).forEach(([id, info]) => {
@@ -57,6 +91,7 @@ const proceed = (user) => {
 function openChat(id, targetMsgId = null) {
     if (currentChatRef) off(currentChatRef);
     currentChatId = id;
+    isFirstLoad = true;
     document.getElementById('chatTitle').innerText = " " + id;
     if (window.innerWidth <= 600) document.getElementById('sidebar').classList.add('hidden');
 
@@ -73,8 +108,9 @@ function openChat(id, targetMsgId = null) {
 
         if (data) {
             let lastUser = null, lastDate = null;
+            const entries = Object.entries(data);
 
-            Object.entries(data).forEach(([msgKey, m]) => {
+            entries.forEach(([msgKey, m]) => {
                 const isMe = m.user === currentUser;
                 const date = m.timestamp ? new Date(m.timestamp) : new Date();
                 const currentDateStr = `${date.getDate().toString().padStart(2, '0')}.${(date.getMonth() + 1).toString().padStart(2, '0')}.${date.getFullYear()}`;
@@ -91,7 +127,7 @@ function openChat(id, targetMsgId = null) {
                 const timeStr = date.getHours().toString().padStart(2, '0') + ':' + date.getMinutes().toString().padStart(2, '0');
                 const wrapper = document.createElement('div');
                 wrapper.className = `message-wrapper ${isMe ? 'sent' : 'received'}`;
-                wrapper.id = "msg-" + msgKey; // Важно для скролла
+                wrapper.id = "msg-" + msgKey;
 
                 let content = m.text || '';
                 if (content.startsWith('IMG_URL:')) {
@@ -105,42 +141,32 @@ function openChat(id, targetMsgId = null) {
 
                 wrapper.oncontextmenu = (e) => showMenu(e, msgKey, m.text, isMe);
 
-                let timer;
-                wrapper.ontouchstart = (e) => {
-                    timer = setTimeout(() => showMenu(e.touches[0], msgKey, m.text, isMe), 400);
-                };
-                wrapper.ontouchend = () => clearTimeout(timer);
-
                 let authorHtml = (m.user !== lastUser) ? `<div class="msg-name">${isMe ? '' : m.user}</div>` : '';
-
-                wrapper.innerHTML = `
-                    <div class="message card">
-                        ${authorHtml}
-                        <div class="msg-text">${content}</div>
-                        <div class="msg-time">${timeStr}</div>
-                    </div>`;
-
+                wrapper.innerHTML = `<div class="message card">${authorHtml}<div class="msg-text">${content}</div><div class="msg-time">${timeStr}</div></div>`;
                 box.appendChild(wrapper);
                 lastUser = m.user;
             });
 
-            // Логика перехода к сообщению
-        if (targetMsgId) {
-                    setTimeout(() => {
-                        const el = document.getElementById("msg-" + targetMsgId);
-                        if (el) {
-                            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                            el.classList.add('glow-msg');
-                            setTimeout(() => el.classList.remove('glow-msg'), 2000);
-                        }
-                        // ВАЖНО: обнуляем, чтобы при новых сообщениях не кидало назад
-                        targetMsgId = null;
-                    }, 200);
-                } else {
-                    box.scrollTop = box.scrollHeight;
-                }
+            // Уведомление о новом сообщении
+            const lastMsg = entries[entries.length - 1][1];
+            isFirstLoad = false;
+
+            if (targetMsgId) {
+                setTimeout(() => {
+                    const el = document.getElementById("msg-" + targetMsgId);
+                    if (el) {
+                        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        el.classList.add('glow-msg');
+                        setTimeout(() => el.classList.remove('glow-msg'), 2000);
+                    }
+                    targetMsgId = null;
+                }, 200);
+            } else {
+                box.scrollTop = box.scrollHeight;
+            }
         } else {
             box.innerHTML = '<div style="text-align:center; opacity:0.5; margin-top:20px;">No messages yet</div>';
+            isFirstLoad = false;
         }
     });
 }
@@ -151,50 +177,32 @@ const sendMsg = async () => {
     if (!txt || !currentChatId) return;
 
     if (txt.startsWith('/translate ')) {
-            const parts = txt.split(' ');
-            if (parts.length >= 3) {
-                const mode = parts[1].toLowerCase();
-                const originalText = parts.slice(2).join(' ');
-                let pair = '';
-
-                if (mode === 'de') {
-                    pair = 'en|de'; // Из задания: если de, то с английского на немецкий
-                } else if (mode === 'en') {
-                    pair = 'de|en'; // Из задания: если en, то с немецкого на английский
-                } else {
-                    pair = `autodetect|${mode}`; // Для всего остального
-                }
-
-                const btn = document.getElementById('sendBtn');
-                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
-
-                txt = await translateText(pair, originalText);
-
-                btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i>';
-            }
+        const parts = txt.split(' ');
+        if (parts.length >= 3) {
+            const mode = parts[1].toLowerCase();
+            const originalText = parts.slice(2).join(' ');
+            let pair = mode === 'de' ? 'en|de' : (mode === 'en' ? 'de|en' : `autodetect|${mode}`);
+            const btn = document.getElementById('sendBtn');
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+            txt = await translateText(pair, originalText);
+            btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i>';
         }
+    }
 
     const isGroup = currentChatId.startsWith('#');
     const targetId = currentChatId.replace(/[@#]/g, '');
-
-    if (!isGroup) {
-        const userSnap = await get(ref(db, 'users/' + targetId));
-        if (!userSnap.exists()) return alert("User not found");
-    }
-
     let dbId = isGroup ? 'group_' + targetId : [currentUser, currentChatId].sort().join('_').replace(/@/g, '');
-    push(ref(db, 'messages/' + dbId), { user: currentUser, text: txt, timestamp: serverTimestamp() });
 
+    push(ref(db, 'messages/' + dbId), { user: currentUser, text: txt, timestamp: serverTimestamp() });
     set(ref(db, `active_chats/${currentUser.replace('@','')}/${dbId}`), {title: currentChatId});
     if(!isGroup) set(ref(db, `active_chats/${targetId}/${dbId}`), {title: currentUser});
 
     inp.value = '';
-    inp.style.height = '40px';
+    inp.style.height = '50px';
     document.getElementById('sendBtn').classList.remove('active');
 };
 
-// --- 2. ИНИЦИАЛИЗАЦИЯ ---
-
+// --- Инициализация интерфейса ---
 const init = () => {
     const savedSitePass = localStorage.getItem('siteAuth');
     const savedUser = localStorage.getItem('currentUser');
@@ -204,29 +212,22 @@ const init = () => {
     const cmdBox = document.getElementById('cmdSuggestions');
     const commands = ['/translate de ', '/translate en '];
 
+    // Тема
     const themeBtn = document.getElementById('themeToggle');
     const currentTheme = localStorage.getItem('theme') || 'light';
-
-    // Устанавливаем тему при загрузке
     document.documentElement.setAttribute('data-theme', currentTheme);
     themeBtn.innerHTML = currentTheme === 'dark' ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
 
     themeBtn.onclick = () => {
-        const theme = document.documentElement.getAttribute('data-theme');
-        const newTheme = theme === 'light' ? 'dark' : 'light';
-
+        const newTheme = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
         document.documentElement.setAttribute('data-theme', newTheme);
         localStorage.setItem('theme', newTheme);
-
-        // Меняем иконку
         themeBtn.innerHTML = newTheme === 'dark' ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
     };
 
     area.oninput = () => {
         const val = area.value;
-        const lastWord = val.split(' ').pop();
         cmdBox.innerHTML = '';
-
         if (val.startsWith('/')) {
             const matches = commands.filter(c => c.startsWith(val));
             if (matches.length > 0 && val !== matches[0]) {
@@ -234,43 +235,21 @@ const init = () => {
                     const d = document.createElement('div');
                     d.className = 'suggest-item';
                     d.innerText = match;
-                    d.onclick = () => {
-                        area.value = match;
-                        cmdBox.style.display = 'none';
-                        area.focus();
-                    };
+                    d.onclick = () => { area.value = match; cmdBox.style.display = 'none'; area.focus(); };
                     cmdBox.appendChild(d);
                 });
                 cmdBox.style.display = 'block';
-            } else {
-                cmdBox.style.display = 'none';
-            }
-        } else {
-            cmdBox.style.display = 'none';
-        }
+            } else cmdBox.style.display = 'none';
+        } else cmdBox.style.display = 'none';
 
-        // Твой старый код для авто-высоты
         area.style.height = 'auto';
-        area.style.height = (area.scrollHeight) + 'px';
+        area.style.height = area.scrollHeight + 'px';
+        const btn = document.getElementById('sendBtn');
+        if (val.trim().length > 0 && currentChatId) btn.classList.add('active');
+        else btn.classList.remove('active');
     };
-    area.addEventListener('input', () => {
-        area.style.height = 'auto';
-        area.style.height = (area.scrollHeight) + 'px';
-    });
-    document.getElementById('msgInput').addEventListener('input', (e) => {
-            const btn = document.getElementById('sendBtn');
-            // Убедись, что currentChatId не пустой и в инпуте не только пробелы
-            if (e.target.value.trim().length > 0 && currentChatId) {
-                btn.classList.add('active');
-            } else {
-                btn.classList.remove('active');
-            }
-        });
 
-    document.getElementById('logoutBtn').onclick = () => {
-        localStorage.clear();
-        location.reload();
-    };
+    document.getElementById('logoutBtn').onclick = () => { localStorage.clear(); location.reload(); };
 
     document.getElementById('siteAuthBtn').onclick = () => {
         if (document.getElementById('sitePassInput').value === "314") {
@@ -295,17 +274,11 @@ const init = () => {
 
     document.getElementById('menuToggle').onclick = () => document.getElementById('sidebar').classList.toggle('hidden');
     document.getElementById('sendBtn').onclick = sendMsg;
-    document.getElementById('msgInput').onkeydown = (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            sendMsg();
-        }
-    };
+    area.onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); } };
 
-    // --- ПОИСК ---
+    // Поиск
     const sInput = document.getElementById('chatSearch');
     const sSuggest = document.getElementById('searchSuggestions');
-
     sInput.oninput = async () => {
         const val = sInput.value.trim().toLowerCase();
         sSuggest.innerHTML = '';
@@ -313,54 +286,24 @@ const init = () => {
         sSuggest.style.display = 'block';
 
         if (val.startsWith('@') || val.startsWith('#')) {
-            const cleanVal = val.slice(1);
             const isUser = val.startsWith('@');
             const snap = await get(ref(db, isUser ? 'users' : 'messages'));
-            const data = snap.val() || {};
-            Object.keys(data).forEach(key => {
-                const displayKey = key.replace('group_', '');
-                if (displayKey.toLowerCase().includes(cleanVal)) {
+            Object.keys(snap.val() || {}).forEach(key => {
+                const display = key.replace('group_', '');
+                if (display.toLowerCase().includes(val.slice(1))) {
                     const item = document.createElement('div');
                     item.className = 'chat-item';
-                    item.innerText = isUser ? '@' + key : '#' + displayKey;
-                    item.onclick = () => {
-                        openChat(item.innerText);
-                        sInput.value = '';
-                        sSuggest.style.display = 'none';
-                    };
+                    item.innerText = isUser ? '@' + key : '#' + display;
+                    item.onclick = () => { openChat(item.innerText); sInput.value = ''; sSuggest.style.display = 'none'; };
                     sSuggest.appendChild(item);
                 }
             });
-        } else {
-            const activeSnap = await get(ref(db, `active_chats/${currentUser.replace('@','')}`));
-            const activeData = activeSnap.val() || {};
-            for (let chatId in activeData) {
-                const msgSnap = await get(ref(db, `messages/${chatId}`));
-                const msgs = msgSnap.val() || {};
-                Object.entries(msgs).forEach(([msgKey, m]) => {
-                    if (m.text && m.text.toLowerCase().includes(val)) {
-                        const item = document.createElement('div');
-                        item.className = 'chat-item';
-                        item.style.fontSize = '0.8rem';
-                        item.innerHTML = `<b style="color:var(--link)">${activeData[chatId].title}:</b> ${m.text.substring(0, 30)}...`;
-                        item.onclick = () => {
-                            openChat(activeData[chatId].title, msgKey);
-                            sSuggest.style.display = 'none';
-                            sInput.value = '';
-                        };
-                        sSuggest.appendChild(item);
-                    }
-                });
-            }
         }
     };
 
-    window.addEventListener('click', (e) => { if (e.target !== sInput) sSuggest.style.display = 'none'; });
-
-    document.getElementById('createGroupBtn').onclick = async () => {
+    document.getElementById('createGroupBtn').onclick = () => {
         let g = prompt("Group name:").trim().replace(/#/, '');
-        if (!g) return;
-        openChat('#' + g);
+        if (g) openChat('#' + g);
     };
 
     document.getElementById('imgInput').onchange = async (e) => {
@@ -372,50 +315,38 @@ const init = () => {
             const url = await uploadImg(file);
             let dbId = currentChatId.startsWith('#') ? 'group_' + currentChatId.replace('#', '') : [currentUser, currentChatId].sort().join('_').replace(/@/g, '');
             push(ref(db, 'messages/' + dbId), { user: currentUser, text: `IMG_URL:${url}`, timestamp: serverTimestamp() });
-        } catch (err) { alert("Upload failed"); }
+        } catch { alert("Upload failed"); }
         finally { btn.style.opacity = '1'; e.target.value = ''; }
     };
 };
 
-// --- ВСПОМОГАТЕЛЬНОЕ ---
-
 const uploadImg = async (file) => {
-    const apiKey = 'dd65b7ceefe40d82481e19dd95070333';
     const formData = new FormData();
     formData.append('image', file);
-    const res = await fetch(`https://api.imgbb.com/1/upload?key=${apiKey}`, { method: 'POST', body: formData });
+    const res = await fetch(`https://api.imgbb.com/1/upload?key=dd65b7ceefe40d82481e19dd95070333`, { method: 'POST', body: formData });
     const data = await res.json();
     return data.data.url;
 };
 
 const showMenu = (e, msgId, text, isMe) => {
     if (e.cancelable) e.preventDefault();
-    e.stopPropagation();
     selectedMsgId = msgId;
     selectedMsgText = text;
     const menu = document.getElementById('msgMenu');
     document.getElementById('editBtn').style.display = isMe ? 'flex' : 'none';
     document.getElementById('delBtn').style.display = isMe ? 'flex' : 'none';
     menu.style.display = 'flex';
-    menu.style.visibility = 'hidden';
-    const menuRect = menu.getBoundingClientRect();
     let x = e.clientX || (e.touches ? e.touches[0].clientX : 0);
     let y = e.clientY || (e.touches ? e.touches[0].clientY : 0);
-    if (x + menuRect.width > window.innerWidth) x = window.innerWidth - menuRect.width - 15;
-    if (y + menuRect.height > window.innerHeight) y = window.innerHeight - menuRect.height - 15;
     menu.style.left = `${x}px`;
     menu.style.top = `${y}px`;
-    menu.style.visibility = 'visible';
 };
 
-window.copyMsg = () => {
-    navigator.clipboard.writeText(selectedMsgText);
-    document.getElementById('msgMenu').style.display = 'none';
-};
+window.copyMsg = () => { navigator.clipboard.writeText(selectedMsgText); document.getElementById('msgMenu').style.display = 'none'; };
 
 document.getElementById('delBtn').onclick = async () => {
     document.getElementById('msgMenu').style.display = 'none';
-    if (await showCustomModal("Delete message?")) {
+    if (await showCustomModal("Delete?")) {
         let dbId = currentChatId.startsWith('#') ? 'group_' + currentChatId.replace('#', '') : [currentUser, currentChatId].sort().join('_').replace(/@/g, '');
         set(ref(db, `messages/${dbId}/${selectedMsgId}`), null);
     }
@@ -424,7 +355,7 @@ document.getElementById('delBtn').onclick = async () => {
 document.getElementById('editBtn').onclick = async () => {
     document.getElementById('msgMenu').style.display = 'none';
     const nt = await showCustomModal("Edit", true, selectedMsgText);
-    if (nt && nt.trim() !== selectedMsgText) {
+    if (nt) {
         let dbId = currentChatId.startsWith('#') ? 'group_' + currentChatId.replace('#', '') : [currentUser, currentChatId].sort().join('_').replace(/@/g, '');
         set(ref(db, `messages/${dbId}/${selectedMsgId}/text`), nt.trim());
     }
@@ -438,14 +369,19 @@ const showCustomModal = (title, showInput = false, defaultValue = "") => {
         input.style.display = showInput ? 'block' : 'none';
         input.value = defaultValue;
         modal.style.display = 'flex';
-        const close = (val) => {
-            modal.style.display = 'none';
-            resolve(val);
-        };
-        document.getElementById('modalConfirm').onclick = () => close(showInput ? input.value : true);
-        document.getElementById('modalCancel').onclick = () => close(null);
+        document.getElementById('modalConfirm').onclick = () => { modal.style.display = 'none'; resolve(showInput ? input.value : true); };
+        document.getElementById('modalCancel').onclick = () => { modal.style.display = 'none'; resolve(null); };
     });
 };
 
-if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
-else init();
+init();
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/firebase-messaging-sw.js')
+        .then((registration) => {
+            console.log('SW registered:', registration.scope);
+            // Только после регистрации воркера пробуем получить токен
+        })
+        .catch((err) => {
+            console.log('SW registration failed:', err);
+        });
+}

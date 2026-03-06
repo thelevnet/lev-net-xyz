@@ -41,6 +41,7 @@
         <div id="sidebar">
             <div class="sidebar-content">
                 <input type="text" id="chatSearch" placeholder="@user or #group" class="card">
+                <div id="searchSuggestions" class="card" style="display:none; position:absolute; width:210px; z-index:100; max-height:200px; overflow-y:auto; margin-top:-5px;"></div>
                 <button id="createGroupBtn" class="card">+ Group +</button>
                 <div id="activeChatsList">
                     <p style="font-size:0.7rem; margin-bottom:0.5rem;">Chats: </p>
@@ -55,7 +56,7 @@
                     <i class="fa-regular fa-image"></i>
                     <input type="file" id="imgInput" accept="image/*" style="display:none;">
                 </label>
-                <input type="text" id="msgInput" placeholder="Message..." class="card">
+                <textarea id="msgInput" placeholder="Message..." class="card" rows="1" style="resize:none; transition: height 0.2s;"></textarea>
                 <button id="sendBtn" class="card"><i class="fa-solid fa-paper-plane"></i></button>
             </div>
         </div>

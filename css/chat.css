@@ -97,6 +97,12 @@ button.card:active, .chat-item:active { transform: translate(2px, 2px); box-shad
 
 #chatSearch, #createGroupBtn { margin-bottom: 1rem; width: 100%; }
 #msgInput { flex: 1; min-width: 0; }
+#msgInput {
+    min-height: 40px;
+    max-height: 150px; /* Больше этого не вырастет, появится скролл */
+    overflow-y: auto;
+    resize: none;
+}
 
 #sendBtn {
     width: 50px;
@@ -142,7 +148,15 @@ button.card:active, .chat-item:active { transform: translate(2px, 2px); box-shad
     font-size: 0.75rem; font-weight: 900; margin-bottom: 0.4rem;
     text-decoration: underline; color: var(--link); display: block;
 }
+.msg-text a {
+    text-decoration: underline;
+    font-weight: 600;
+}
 
+.message-wrapper.sent .msg-text a {
+    color: #ffffff !important; /* Белый для твоих, чтобы на синем горело */
+    text-decoration: underline;
+}
 .msg-text { margin-bottom: 0.2rem; }
 .msg-time { font-size: 0.65rem; opacity: 0.6; align-self: flex-end; margin-top: 2px; }
 
@@ -173,7 +187,10 @@ button.card:active, .chat-item:active { transform: translate(2px, 2px); box-shad
 .msg-text {
     user-select: text; /* Чтобы текст всё же можно было копировать вручную если надо */
 }
-
+.msg-text {
+    white-space: pre-wrap; /* Сохраняет пробелы и переносы, но переносит длинные строки */
+    word-wrap: break-word;
+}
 #customModal {
     transition: opacity 0.2s ease;
 }
@@ -183,4 +200,38 @@ button.card:active, .chat-item:active { transform: translate(2px, 2px); box-shad
 @keyframes modalShow {
     from { transform: scale(0.9); opacity: 0; }
     to { transform: scale(1); opacity: 1; }
+}
+
+/* Упоминание в чужих сообщениях (светлый фон) */
+/* Меншины в чужих сообщениях (цвет как твои бабблы) */
+.mention {
+    color: var(--link); /* Тот самый цвет #1cb1c5 */
+    background: rgba(28, 177, 197, 0.15);
+    font-weight: 900;
+    text-decoration: underline;
+}
+
+/* Меншины в ТВОИХ сообщениях (чтобы не сливались с фоном) */
+.message-wrapper.sent .mention {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.2);
+    padding: 0 3px;
+    border-radius: 4px;
+    font-weight: 900;
+}
+
+#searchSuggestions {
+    width: 100% !important; /* На всю ширину сайдбара */
+    left: 0;
+}
+
+@keyframes messageGlow {
+    0% { box-shadow: 0 0 0px var(--link); background: rgba(28, 177, 197, 0.2); }
+    50% { box-shadow: 0 0 20px var(--link); background: rgba(28, 177, 197, 0.4); }
+    100% { box-shadow: 0 0 0px var(--link); background: transparent; }
+}
+
+.glow-msg {
+    animation: messageGlow 1.5s ease-out;
+    border-radius: 8px;
 }

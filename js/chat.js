@@ -5,12 +5,11 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 let currentUser = null;
 let currentChatId = null;
-let chatRef = null;
+let currentChatRef = null; // Для off()
 let selectedMsgId = null;
 let selectedMsgText = null;
 
-
-// --- 1. ВСЕ ФУНКЦИИ (ОБЪЯВЛЯЕМ СРАЗУ) ---
+// --- 1. ВСЕ ФУНКЦИИ ---
 
 async function hashPassword(password) {
     const encoder = new TextEncoder();
@@ -40,25 +39,25 @@ function loadActiveChats() {
 
 const proceed = (user) => {
     currentUser = user;
-    const uOver = document.getElementById('userAuthOverlay');
-    const sOver = document.getElementById('siteAuthOverlay');
-    if (uOver) uOver.style.display = 'none';
-    if (sOver) sOver.style.display = 'none';
+    document.getElementById('userAuthOverlay').style.display = 'none';
+    document.getElementById('siteAuthOverlay').style.display = 'none';
     document.getElementById('chatApp').style.display = 'flex';
     loadActiveChats();
 };
 
-function openChat(id) {
-    if (chatRef) off(chatRef);
+function openChat(id, targetMsgId = null) {
+    if (currentChatRef) off(currentChatRef);
     currentChatId = id;
     document.getElementById('chatTitle').innerText = " " + id;
     if (window.innerWidth <= 600) document.getElementById('sidebar').classList.add('hidden');
-    loadActiveChats();
 
-    let dbId = id.startsWith('@') ? [currentUser, id].sort().join('_').replace(/@/g, '') : id.replace('#', 'group_');
-    chatRef = ref(db, 'messages/' + dbId);
+    let dbId = id.startsWith('#')
+        ? 'group_' + id.replace('#', '')
+        : [currentUser, id].sort().join('_').replace(/@/g, '');
 
-    onValue(chatRef, (snap) => {
+    currentChatRef = ref(db, 'messages/' + dbId);
+
+    onValue(currentChatRef, (snap) => {
         const box = document.getElementById('chatBox');
         box.innerHTML = '';
         const data = snap.val();
@@ -66,7 +65,6 @@ function openChat(id) {
         if (data) {
             let lastUser = null, lastDate = null;
 
-            // Используем entries, чтобы достать ID сообщения для удаления/редактирования
             Object.entries(data).forEach(([msgKey, m]) => {
                 const isMe = m.user === currentUser;
                 const date = m.timestamp ? new Date(m.timestamp) : new Date();
@@ -84,18 +82,20 @@ function openChat(id) {
                 const timeStr = date.getHours().toString().padStart(2, '0') + ':' + date.getMinutes().toString().padStart(2, '0');
                 const wrapper = document.createElement('div');
                 wrapper.className = `message-wrapper ${isMe ? 'sent' : 'received'}`;
+                wrapper.id = "msg-" + msgKey; // Важно для скролла
 
-                // Обработка контента (текст или картинка)
                 let content = m.text || '';
                 if (content.startsWith('IMG_URL:')) {
                     const url = content.replace('IMG_URL:', '');
                     content = `<img src="${url}" style="max-width:100%; border-radius:8px; cursor:pointer; display:block;" onclick="window.open('${url}')">`;
+                } else {
+                    const urlRegex = /(https?:\/\/[^\s]+)/g;
+                    content = content.replace(urlRegex, (url) => `<a href="${url}" target="_blank" style="color:inherit; text-decoration:underline;">${url}</a>`);
+                    content = content.replace(/(@[a-zA-Z0-9_]+)/g, '<span class="mention">$1</span>');
                 }
 
-                // Контекстное меню (ПК)
                 wrapper.oncontextmenu = (e) => showMenu(e, msgKey, m.text, isMe);
 
-                // Контекстное меню (Мобилки - лонг пресс)
                 let timer;
                 wrapper.ontouchstart = (e) => {
                     timer = setTimeout(() => showMenu(e.touches[0], msgKey, m.text, isMe), 400);
@@ -105,7 +105,7 @@ function openChat(id) {
                 let authorHtml = (m.user !== lastUser) ? `<div class="msg-name">${isMe ? '' : m.user}</div>` : '';
 
                 wrapper.innerHTML = `
-                    <div class="message">
+                    <div class="message card">
                         ${authorHtml}
                         <div class="msg-text">${content}</div>
                         <div class="msg-time">${timeStr}</div>
@@ -114,7 +114,22 @@ function openChat(id) {
                 box.appendChild(wrapper);
                 lastUser = m.user;
             });
-            box.scrollTop = box.scrollHeight;
+
+            // Логика перехода к сообщению
+            if (targetMsgId) {
+                setTimeout(() => {
+                    const el = document.getElementById("msg-" + targetMsgId);
+                    if (el) {
+                        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        el.classList.add('glow-msg');
+                        setTimeout(() => el.classList.remove('glow-msg'), 2000);
+                    }
+                }, 200);
+            } else {
+                box.scrollTop = box.scrollHeight;
+            }
+        } else {
+            box.innerHTML = '<div style="text-align:center; opacity:0.5; margin-top:20px;">No messages yet</div>';
         }
     });
 }
@@ -123,29 +138,38 @@ const sendMsg = async () => {
     const inp = document.getElementById('msgInput');
     const txt = inp.value.trim();
     if (!txt || !currentChatId) return;
+
     const isGroup = currentChatId.startsWith('#');
     const targetId = currentChatId.replace(/[@#]/g, '');
+
     if (!isGroup) {
         const userSnap = await get(ref(db, 'users/' + targetId));
         if (!userSnap.exists()) return alert("User not found");
     }
+
     let dbId = isGroup ? 'group_' + targetId : [currentUser, currentChatId].sort().join('_').replace(/@/g, '');
     push(ref(db, 'messages/' + dbId), { user: currentUser, text: txt, timestamp: serverTimestamp() });
+
     set(ref(db, `active_chats/${currentUser.replace('@','')}/${dbId}`), {title: currentChatId});
     if(!isGroup) set(ref(db, `active_chats/${targetId}/${dbId}`), {title: currentUser});
+
     inp.value = '';
+    inp.style.height = '40px';
     document.getElementById('sendBtn').classList.remove('active');
 };
 
-// --- 2. ЛОГИКА АВТОРИЗАЦИИ И АВТОЛОГИНА ---
+// --- 2. ИНИЦИАЛИЗАЦИЯ ---
 
 const init = () => {
     const savedSitePass = localStorage.getItem('siteAuth');
     const savedUser = localStorage.getItem('currentUser');
+    if (savedSitePass === "314" && savedUser) proceed(savedUser);
 
-    if (savedSitePass === "314" && savedUser) {
-        proceed(savedUser);
-    }
+    const area = document.getElementById('msgInput');
+    area.addEventListener('input', () => {
+        area.style.height = 'auto';
+        area.style.height = (area.scrollHeight) + 'px';
+    });
 
     document.getElementById('logoutBtn').onclick = () => {
         localStorage.clear();
@@ -173,173 +197,159 @@ const init = () => {
         proceed(uName);
     };
 
-    // Интерфейс
     document.getElementById('menuToggle').onclick = () => document.getElementById('sidebar').classList.toggle('hidden');
     document.getElementById('sendBtn').onclick = sendMsg;
-    document.getElementById('msgInput').onkeydown = (e) => { if(e.key === 'Enter') sendMsg(); };
-
-    document.getElementById('chatSearch').onkeydown = async (e) => {
-        if (e.key === 'Enter') {
-            let val = e.target.value.trim();
-            if (!val) return;
-            const isGroup = val.startsWith('#'), cleanId = val.replace(/[@#]/g, '');
-            const snap = await get(ref(db, isGroup ? 'messages/group_' + cleanId : 'users/' + cleanId));
-            if (snap.exists()) openChat(val); else alert("Not found");
-            e.target.value = '';
+    document.getElementById('msgInput').onkeydown = (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMsg();
         }
     };
+
+    // --- ПОИСК ---
+    const sInput = document.getElementById('chatSearch');
+    const sSuggest = document.getElementById('searchSuggestions');
+
+    sInput.oninput = async () => {
+        const val = sInput.value.trim().toLowerCase();
+        sSuggest.innerHTML = '';
+        if (!val) { sSuggest.style.display = 'none'; return; }
+        sSuggest.style.display = 'block';
+
+        if (val.startsWith('@') || val.startsWith('#')) {
+            const cleanVal = val.slice(1);
+            const isUser = val.startsWith('@');
+            const snap = await get(ref(db, isUser ? 'users' : 'messages'));
+            const data = snap.val() || {};
+            Object.keys(data).forEach(key => {
+                const displayKey = key.replace('group_', '');
+                if (displayKey.toLowerCase().includes(cleanVal)) {
+                    const item = document.createElement('div');
+                    item.className = 'chat-item';
+                    item.innerText = isUser ? '@' + key : '#' + displayKey;
+                    item.onclick = () => {
+                        openChat(item.innerText);
+                        sInput.value = '';
+                        sSuggest.style.display = 'none';
+                    };
+                    sSuggest.appendChild(item);
+                }
+            });
+        } else {
+            const activeSnap = await get(ref(db, `active_chats/${currentUser.replace('@','')}`));
+            const activeData = activeSnap.val() || {};
+            for (let chatId in activeData) {
+                const msgSnap = await get(ref(db, `messages/${chatId}`));
+                const msgs = msgSnap.val() || {};
+                Object.entries(msgs).forEach(([msgKey, m]) => {
+                    if (m.text && m.text.toLowerCase().includes(val)) {
+                        const item = document.createElement('div');
+                        item.className = 'chat-item';
+                        item.style.fontSize = '0.8rem';
+                        item.innerHTML = `<b style="color:var(--link)">${activeData[chatId].title}:</b> ${m.text.substring(0, 30)}...`;
+                        item.onclick = () => {
+                            openChat(activeData[chatId].title, msgKey);
+                            sSuggest.style.display = 'none';
+                            sInput.value = '';
+                        };
+                        sSuggest.appendChild(item);
+                    }
+                });
+            }
+        }
+    };
+
+    window.addEventListener('click', (e) => { if (e.target !== sInput) sSuggest.style.display = 'none'; });
 
     document.getElementById('createGroupBtn').onclick = async () => {
         let g = prompt("Group name:").trim().replace(/#/, '');
         if (!g) return;
-        const gRef = ref(db, 'messages/group_' + g);
-        const snap = await get(gRef);
         openChat('#' + g);
     };
 
-    document.getElementById('msgInput').addEventListener('input', (e) => {
-        const btn = document.getElementById('sendBtn');
-        btn.classList.toggle('active', e.target.value.trim().length > 0 && currentChatId);
-    });
     document.getElementById('imgInput').onchange = async (e) => {
         const file = e.target.files[0];
         if (!file || !currentChatId) return;
-
         const btn = e.target.parentElement;
-        btn.style.opacity = '0.5'; // Визуальный лоадер
-
+        btn.style.opacity = '0.5';
         try {
             const url = await uploadImg(file);
-            // Отправляем как обычное сообщение, но с пометкой или просто ссылкой
             let dbId = currentChatId.startsWith('#') ? 'group_' + currentChatId.replace('#', '') : [currentUser, currentChatId].sort().join('_').replace(/@/g, '');
-            push(ref(db, 'messages/' + dbId), {
-                user: currentUser,
-                text: `IMG_URL:${url}`,
-                timestamp: serverTimestamp()
-            });
-        } catch (err) {
-            alert("Upload failed");
-        } finally {
-            btn.style.opacity = '1';
-            e.target.value = '';
-        }
+            push(ref(db, 'messages/' + dbId), { user: currentUser, text: `IMG_URL:${url}`, timestamp: serverTimestamp() });
+        } catch (err) { alert("Upload failed"); }
+        finally { btn.style.opacity = '1'; e.target.value = ''; }
     };
 };
 
-// Запуск
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-} else {
-    init();
-}
+// --- ВСПОМОГАТЕЛЬНОЕ ---
 
 const uploadImg = async (file) => {
     const apiKey = 'dd65b7ceefe40d82481e19dd95070333';
     const formData = new FormData();
     formData.append('image', file);
-
-    const res = await fetch(`https://api.imgbb.com/1/upload?key=${apiKey}`, {
-        method: 'POST',
-        body: formData
-    });
+    const res = await fetch(`https://api.imgbb.com/1/upload?key=${apiKey}`, { method: 'POST', body: formData });
     const data = await res.json();
-    return data.data.url; // Прямая ссылка на картинку
+    return data.data.url;
 };
-window.onclick = () => document.getElementById('msgMenu').style.display = 'none';
 
 const showMenu = (e, msgId, text, isMe) => {
-    // Останавливаем стандартное поведение
     if (e.cancelable) e.preventDefault();
     e.stopPropagation();
-
     selectedMsgId = msgId;
     selectedMsgText = text;
-
     const menu = document.getElementById('msgMenu');
-
-    // Настройка видимости кнопок
     document.getElementById('editBtn').style.display = isMe ? 'flex' : 'none';
     document.getElementById('delBtn').style.display = isMe ? 'flex' : 'none';
-
-    // Временно показываем для замера
     menu.style.display = 'flex';
     menu.style.visibility = 'hidden';
-
     const menuRect = menu.getBoundingClientRect();
-    const padding = 15; // Безопасный отступ от края экрана
-
     let x = e.clientX || (e.touches ? e.touches[0].clientX : 0);
     let y = e.clientY || (e.touches ? e.touches[0].clientY : 0);
-
-    // Проверка по горизонтали
-    if (x + menuRect.width > window.innerWidth) {
-        x = window.innerWidth - menuRect.width - padding;
-    }
-    if (x < padding) x = padding;
-
-    // Проверка по вертикали
-    if (y + menuRect.height > window.innerHeight) {
-        y = window.innerHeight - menuRect.height - padding;
-    }
-    if (y < padding) y = padding;
-
+    if (x + menuRect.width > window.innerWidth) x = window.innerWidth - menuRect.width - 15;
+    if (y + menuRect.height > window.innerHeight) y = window.innerHeight - menuRect.height - 15;
     menu.style.left = `${x}px`;
     menu.style.top = `${y}px`;
     menu.style.visibility = 'visible';
 };
 
-// Копирование в буфер
 window.copyMsg = () => {
-    if (!selectedMsgText) return;
     navigator.clipboard.writeText(selectedMsgText);
     document.getElementById('msgMenu').style.display = 'none';
 };
 
-// Удаление
 document.getElementById('delBtn').onclick = async () => {
     document.getElementById('msgMenu').style.display = 'none';
-    const confirmed = await showCustomModal("Delete this message?");
-    if (confirmed && selectedMsgId) {
+    if (await showCustomModal("Delete message?")) {
         let dbId = currentChatId.startsWith('#') ? 'group_' + currentChatId.replace('#', '') : [currentUser, currentChatId].sort().join('_').replace(/@/g, '');
         set(ref(db, `messages/${dbId}/${selectedMsgId}`), null);
     }
 };
 
-// Редактирование
 document.getElementById('editBtn').onclick = async () => {
     document.getElementById('msgMenu').style.display = 'none';
-    const newText = await showCustomModal("Edit message", true, selectedMsgText);
-    if (newText !== null && newText.trim() !== "" && newText !== selectedMsgText) {
+    const nt = await showCustomModal("Edit", true, selectedMsgText);
+    if (nt && nt.trim() !== selectedMsgText) {
         let dbId = currentChatId.startsWith('#') ? 'group_' + currentChatId.replace('#', '') : [currentUser, currentChatId].sort().join('_').replace(/@/g, '');
-        set(ref(db, `messages/${dbId}/${selectedMsgId}/text`), newText.trim());
+        set(ref(db, `messages/${dbId}/${selectedMsgId}/text`), nt.trim());
     }
 };
-
-// Закрытие меню при клике в любое другое место
-window.addEventListener('click', () => {
-    const menu = document.getElementById('msgMenu');
-    if (menu) menu.style.display = 'none';
-});
-
 
 const showCustomModal = (title, showInput = false, defaultValue = "") => {
     return new Promise((resolve) => {
         const modal = document.getElementById('customModal');
         const input = document.getElementById('modalInput');
         document.getElementById('modalTitle').innerText = title;
-
         input.style.display = showInput ? 'block' : 'none';
         input.value = defaultValue;
         modal.style.display = 'flex';
-
         const close = (val) => {
             modal.style.display = 'none';
-            document.getElementById('modalConfirm').onclick = null;
-            document.getElementById('modalCancel').onclick = null;
             resolve(val);
         };
-
         document.getElementById('modalConfirm').onclick = () => close(showInput ? input.value : true);
         document.getElementById('modalCancel').onclick = () => close(null);
     });
 };
+
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+else init();

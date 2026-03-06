@@ -32,7 +32,6 @@ function loadActiveChats() {
     if (!currentUser) return;
     onValue(ref(db, `active_chats/${currentUser.replace('@','')}`), (snap) => {
         const list = document.getElementById('activeChatsList');
-        list.innerHTML = '<p style="font-size:0.7rem; margin-bottom:0.5rem;">Chats: </p>';
         const data = snap.val();
         if (data) {
             Object.entries(data).forEach(([id, info]) => {

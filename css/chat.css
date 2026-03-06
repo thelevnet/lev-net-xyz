@@ -1,5 +1,5 @@
+/* --- 1. ПЕРЕМЕННЫЕ И ТЕМЫ --- */
 :root {
-    /* LIGHT THEME (Default) */
     --bg: #FAF8F5;
     --surface: #FFFFFF;
     --surface-2: #F2EFE9;
@@ -15,86 +15,191 @@
 }
 
 [data-theme="dark"] {
-    /* DARK THEME */
     --bg: #121212;
     --surface: #1E1E1E;
     --surface-2: #2A2A2A;
     --border: #333333;
     --secondary: #507687;
-    --link: #1cb1c5; /* Оставляем ярким для акцента */
+    --link: #1cb1c5;
     --text-1: #E0E0E0;
     --text-2: #B0B0B0;
     --text-3: #707070;
     --shadow: rgba(0, 0, 0, 0.5);
 }
 
-* { margin: 0; padding: 0; box-sizing: border-box; }
+/* --- 2. БАЗОВЫЕ СТИЛИ --- */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
 
 body, html {
+    height: 100%;
+    width: 100%;
+    background-color: var(--bg);
+    color: var(--text-1);
     font-family: var(--font-main);
     -webkit-font-smoothing: antialiased;
     font-optical-sizing: auto;
+    overflow: hidden;
 }
 
-body, html {
-    height: 100%; width: 100%;
-    background-color: var(--bg); color: var(--text-1);
+.wrapper {
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+    width: 100vw;
+    overflow: hidden;
 }
 
-.overlay {
-    position: fixed; top: 0; left: 0; width: 100vw; height: 100dvh;
-    background: var(--bg); z-index: 9999;
-    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.5rem;
+/* --- 3. ОБЩИЕ КОМПОНЕНТЫ (CARD, BUTTONS) --- */
+.card, .chat-item {
+    border: 2px solid var(--border);
+    padding: 0.8rem;
+    background: var(--surface);
+    border-radius: 12px;
+    outline: none;
+    transition: 0.2s;
+    box-shadow: 0.3125rem 0.3125rem 0.3125rem var(--shadow);
 }
 
-.wrapper { display: flex; flex-direction: column; height: 100dvh; width: 100vw; overflow: hidden; }
-
-.Header {
-    display: flex; align-items: center; padding: 1rem 1.5rem;
-    border-bottom: 2px solid var(--border); background: var(--surface); flex-shrink: 0;
+.card, .message {
+    box-shadow: 0.3125rem 0.3125rem 0.3125rem var(--shadow);
 }
+
+button.card:active, .chat-item:active {
+    transform: translate(2px, 2px);
+    box-shadow: 0.1rem 0.1rem 0.1rem var(--shadow);
+}
+
 i {
     color: var(--text-1);
 }
 
-.Header h1 { font-size: 1.2rem; font-weight: 900; }
-#chatTitle { color: var(--link); }
-
-.msg-text img {
-    display: block;
-    margin-top: 5px;
-    max-height: 300px;
-    object-fit: contain;
+/* --- 4. ХЕДЕР --- */
+.Header {
+    display: flex;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    border-bottom: 2px solid var(--border);
+    background: var(--surface);
+    flex-shrink: 0;
 }
 
-/* Удали или закомментируй старый #menuToggle и напиши так: */
-#menuToggle {
-    margin-right: 15px;
-    cursor: pointer;
-    /* Убираем фон surface-2, чтобы он не отличался от темы и логаута */
+.Header h1 {
+    flex: 1;
+    font-size: 1.2rem;
+    font-weight: 900;
 }
 
-/* Красим все иконки в хедере ОДИНАКОВО */
-.Header .card i {
+.Header .card {
+    margin-left: 10px;
+}
+
+.Header button i {
     color: var(--text-1) !important;
-    font-size: 1.1rem; /* Чтобы размер был ровный */
+    font-size: 1.1rem;
 }
 
-/* Чтобы при наведении они все одинаково подсвечивались */
 .Header .card:hover i {
     color: var(--link) !important;
 }
 
-.chat-container { display: flex; flex: 1; overflow: hidden; position: relative; }
-
-#sidebar {
-    width: var(--sidebar-width); height: 100%; border-right: 2px solid var(--border);
-    background: var(--surface); transition: 0.3s ease; display: flex; flex-direction: column; flex-shrink: 0;
+#chatTitle {
+    color: var(--link);
 }
 
-#sidebar.hidden { margin-left: calc(var(--sidebar-width) * -1); }
-.sidebar-content { padding: 1.25rem; overflow-y: auto; flex: 1; }
+#menuToggle {
+    margin-right: 15px;
+    cursor: pointer;
+}
 
+/* --- 5. САЙДБАР --- */
+.chat-container {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+}
+
+#sidebar {
+    width: var(--sidebar-width);
+    height: 100%;
+    border-right: 2px solid var(--border);
+    background: var(--surface);
+    transition: 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+}
+
+#sidebar.hidden {
+    margin-left: calc(var(--sidebar-width) * -1);
+}
+
+.sidebar-content {
+    padding: 1.25rem;
+    overflow-y: auto;
+    flex: 1;
+}
+
+#chatSearch, #createGroupBtn {
+    margin-bottom: 1rem;
+    width: 100%;
+}
+
+/* Контейнер списка (убираем лишние отступы) */
+#activeChatsList {
+    display: flex;
+    flex-direction: column;
+    gap: 0; /* Чтобы айтемы шли вплотную как в подсказках */
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden; /* Чтобы углы айтемов не вылезали */
+    background: var(--surface);
+}
+
+/* Стили самого контакта (а-ля suggest-item) */
+#activeChatsList .chat-item {
+    cursor: pointer;
+    padding: 12px 15px;
+    font-size: 0.9rem;
+    color: var(--text-1);
+    background: var(--surface);
+    border: none; /* Убираем рамку каждой кнопки */
+    border-bottom: 1px solid var(--border); /* Разделитель как в списке команд */
+    border-radius: 0; /* Убираем скругления кнопок */
+    box-shadow: none; /* Убираем тени */
+    transition: 0.2s;
+    text-align: left;
+    width: 100%;
+    margin-bottom: 0; /* Обнуляем твой старый отступ */
+}
+
+/* Убираем нижнюю линию у последнего контакта */
+#activeChatsList .chat-item:last-child {
+    border-bottom: none;
+}
+
+/* Эффект при наведении */
+#activeChatsList .chat-item:hover {
+    background: var(--surface-2);
+    transform: none; /* Убираем прыжок кнопки */
+}
+
+/* Активный чат */
+#activeChatsList .chat-item.active {
+    background: var(--link);
+    color: #fff;
+}
+
+/* Если внутри есть иконки или превью - подкрасим их */
+#activeChatsList .chat-item.active i {
+    color: #fff !important;
+}
+
+/* --- 6. ОСНОВНОЙ ЧАТ И ТЕКСТ --- */
 #mainChat {
     flex: 1;
     display: flex;
@@ -113,34 +218,122 @@ i {
     gap: 0.4rem;
 }
 
+.date-divider {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    margin: 1.5rem 0 1rem;
+    color: var(--text-3);
+    font-size: 0.7rem;
+}
+
+.date-divider::before, .date-divider::after {
+    content: "";
+    flex: 1;
+    border-bottom: 1px solid var(--border);
+}
+
+.date-divider span {
+    padding: 0 1rem;
+    font-weight: bold;
+}
+
+/* --- 7. СООБЩЕНИЯ --- */
+.message-wrapper {
+    display: flex;
+    width: 100%;
+    margin-bottom: 0.2rem;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+.message {
+    padding: 0.6rem 1rem;
+    border-radius: 18px;
+    border: 2px solid var(--border);
+    max-width: 75%;
+    font-size: 0.9rem;
+    word-wrap: break-word;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+.msg-name {
+    font-size: 0.75rem;
+    font-weight: 900;
+    margin-bottom: 0.4rem;
+    text-decoration: underline;
+    color: var(--link);
+    display: block;
+}
+
+.msg-text {
+    margin-bottom: 0.2rem;
+    user-select: text;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.msg-text a {
+    text-decoration: underline;
+    font-weight: 600;
+}
+
+.msg-text img {
+    display: block;
+    margin-top: 5px;
+    max-height: 300px;
+    object-fit: contain;
+}
+
+.msg-time {
+    font-size: 0.65rem;
+    opacity: 0.6;
+    align-self: flex-end;
+    margin-top: 2px;
+}
+
+.message-wrapper.received { justify-content: flex-start; }
+.message-wrapper.received .message { 
+    background: var(--surface); 
+    color: var(--text-1); 
+    border-bottom-left-radius: 4px; 
+}
+
+.message-wrapper.sent { justify-content: flex-end; }
+.message-wrapper.sent .message {
+    background: var(--link);
+    color: white;
+    border-color: #169bad;
+    border-bottom-right-radius: 4px;
+}
+
+.message-wrapper.sent .msg-name { color: #e0f7fa; text-align: right; }
+.message-wrapper.sent .msg-time { color: #fff; }
+.message-wrapper.sent .msg-text a { color: #ffffff !important; }
+
+/* --- 8. ИНПУТ И ОТПРАВКА --- */
 .input-row {
     padding: 1.25rem;
     background: var(--surface);
     border-top: 2px solid var(--border);
     display: flex;
     gap: 10px;
-    flex-shrink: 0; /* Не дает инпуту свалить вниз */
+    flex-shrink: 0;
+    position: relative;
 }
 
-.card, .chat-item {
-    border: 2px solid var(--border); padding: 0.8rem; background: var(--surface);
-    border-radius: 12px; outline: none; transition: 0.2s;
-    box-shadow: 0.3125rem 0.3125rem 0.3125rem var(--surface-2);
-}
-
-#activeChatsList .chat-item { cursor: pointer; margin-bottom: 0.8rem; font-size: 0.8rem; display: block; width: 100%; }
-#activeChatsList .chat-item.active { border-color: var(--link); background: var(--surface-2); }
-
-button.card:active, .chat-item:active { transform: translate(2px, 2px); box-shadow: 0.1rem 0.1rem 0.1rem var(--surface-2); }
-
-#chatSearch, #createGroupBtn { margin-bottom: 1rem; width: 100%; }
-#msgInput { flex: 1; min-width: 0; }
 #msgInput {
-    color: var(--text);
+    flex: 1;
+    min-width: 0;
+    color: var(--text-1);
     min-height: 50px;
-    max-height: 150px; /* Больше этого не вырастет, появится скролл */
+    max-height: 150px;
     overflow-y: auto;
     resize: none;
+    transition: height 0.2s;
 }
 
 #sendBtn {
@@ -165,103 +358,20 @@ button.card:active, .chat-item:active { transform: translate(2px, 2px); box-shad
 
 #sendBtn.active:active { transform: translate(2px, 2px) scale(1); }
 
-.date-divider {
-    display: flex; align-items: center; text-align: center;
-    margin: 1.5rem 0 1rem; color: var(--text-3); font-size: 0.7rem;
-}
-.date-divider::before, .date-divider::after {
-    content: ""; flex: 1; border-bottom: 1px solid var(--border);
-}
-.date-divider span { padding: 0 1rem; font-weight: bold; }
-
-.message-wrapper { display: flex; width: 100%; margin-bottom: 0.2rem; }
-
-.message {
-    padding: 0.6rem 1rem; border-radius: 18px; border: 2px solid var(--border);
-    max-width: 75%; font-size: 0.9rem; word-wrap: break-word;
-    box-shadow: 0.3125rem 0.3125rem 0.3125rem var(--surface-2);
-    position: relative; display: flex; flex-direction: column;
-}
-
-.msg-name {
-    font-size: 0.75rem; font-weight: 900; margin-bottom: 0.4rem;
-    text-decoration: underline; color: var(--link); display: block;
-}
-.msg-text a {
-    text-decoration: underline;
-    font-weight: 600;
-}
-
-.message-wrapper.sent .msg-text a {
-    color: #ffffff !important; /* Белый для твоих, чтобы на синем горело */
-    text-decoration: underline;
-}
-.msg-text { margin-bottom: 0.2rem; }
-.msg-time { font-size: 0.65rem; opacity: 0.6; align-self: flex-end; margin-top: 2px; }
-
-.message-wrapper.received { justify-content: flex-start; }
-.message-wrapper.received .message { background: var(--surface); color: var(--text-1); border-bottom-left-radius: 4px; }
-
-.message-wrapper.sent { justify-content: flex-end; }
-.message-wrapper.sent .message {
-    background: var(--link); color: white; border-color: #169bad; border-bottom-right-radius: 4px;
-}
-.message-wrapper.sent .msg-name { color: #e0f7fa; text-align: right; }
-.message-wrapper.sent .msg-time { color: #fff; }
-
-#chatBox::-webkit-scrollbar { width: 6px; }
-#chatBox::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
-
-@media (max-width: 600px) {
-    #sidebar { position: absolute; left: 0; top: 0; z-index: 50; }
-    #sidebar.hidden { transform: translateX(-100%); margin-left: 0; }
-}
-
-
-.message-wrapper {
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    user-select: none;
-}
-.msg-text {
-    user-select: text; /* Чтобы текст всё же можно было копировать вручную если надо */
-}
-.msg-text {
-    white-space: pre-wrap; /* Сохраняет пробелы и переносы, но переносит длинные строки */
-    word-wrap: break-word;
-}
-#customModal {
-    transition: opacity 0.2s ease;
-}
-#customModal .card {
-    animation: modalShow 0.2s ease-out;
-}
-@keyframes modalShow {
-    from { transform: scale(0.9); opacity: 0; }
-    to { transform: scale(1); opacity: 1; }
-}
-
-/* Упоминание в чужих сообщениях (светлый фон) */
-/* Меншины в чужих сообщениях (цвет как твои бабблы) */
+/* --- 9. СПЕЦЭФФЕКТЫ И МОДАЛКИ --- */
 .mention {
-    color: var(--link); /* Тот самый цвет #1cb1c5 */
+    color: var(--link);
     background: rgba(28, 177, 197, 0.15);
     font-weight: 900;
     text-decoration: underline;
 }
 
-/* Меншины в ТВОИХ сообщениях (чтобы не сливались с фоном) */
 .message-wrapper.sent .mention {
     color: #ffffff;
     background: rgba(255, 255, 255, 0.2);
     padding: 0 3px;
     border-radius: 4px;
     font-weight: 900;
-}
-
-#searchSuggestions {
-    width: 100% !important; /* На всю ширину сайдбара */
-    left: 0;
 }
 
 @keyframes messageGlow {
@@ -275,93 +385,98 @@ button.card:active, .chat-item:active { transform: translate(2px, 2px); box-shad
     border-radius: 8px;
 }
 
-/* Общие стили для всех скроллбаров в приложении */
-/* Вся полоса скролла */
-*::-webkit-scrollbar {
-    width: 6px;
+.overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100dvh;
+    background: var(--bg);
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5rem;
 }
 
-/* Дорожка (фон) — делаем полностью прозрачной */
-*::-webkit-scrollbar-track {
-    background: transparent;
+#customModal .card {
+    animation: modalShow 0.2s ease-out;
 }
 
-/* Сам ползунок — серый, полупрозрачный и «скрытый» по умолчанию */
-*::-webkit-scrollbar-thumb {
-    background-color: rgba(128, 128, 128, 0); /* Полностью прозрачный */
-    border-radius: 10px;
-    transition: background-color 0.3s;
+@keyframes modalShow {
+    from { transform: scale(0.9); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
 }
 
-/* Проявляем скролл только при наведении на элемент (чаты, сообщения или инпут) */
-*:hover::-webkit-scrollbar-thumb {
-    background-color: rgba(128, 128, 128, 0.3); /* Становится серым и полупрозрачным */
-}
-
-/* Когда юзер тянет за сам скролл — делаем чуть темнее */
-*::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(128, 128, 128, 0.6) !important;
-}
-
-/* Фикс для Firefox */
-* {
-    scrollbar-width: thin;
-    scrollbar-color: transparent transparent;
-    transition: scrollbar-color 0.3s;
-}
-
-*:hover {
-    scrollbar-color: rgba(128, 128, 128, 0.3) transparent;
-}
-
-#cmdSuggestions {
+/* --- 10. ПОДСКАЗКИ КОМАНД И ПОИСКА --- */
+#cmdSuggestions, #searchSuggestions {
     display: none;
     position: absolute;
-    bottom: 100%;
-    left: 60px;
-    width: calc(100% - 120px);
     z-index: 1000;
-    margin-bottom: 10px;
-
-    /* Юзаем твою переменную, но форсим непрозрачность */
     background: var(--surface) !important;
     border: 1px solid var(--border);
     border-radius: 8px;
-
-    /* Тень погуще, чтобы отлепилось от чата */
     box-shadow: 0 8px 24px rgba(0,0,0,0.6);
     overflow: hidden;
 }
 
+#cmdSuggestions {
+    bottom: 100%;
+    left: 60px;
+    width: calc(100% - 120px);
+    margin-bottom: 10px;
+}
+
+#searchSuggestions {
+    width: 100% !important;
+    left: 0;
+}
+
 .suggest-item {
     padding: 12px;
-    /* Берем твой цвет карточек */
     background: var(--surface);
-    color: var(--text);
+    color: var(--text-1);
     cursor: pointer;
     border-bottom: 1px solid var(--border);
     transition: 0.2s;
 }
 
 .suggest-item:hover {
-    /* Твой акцентный цвет при наведении */
     background: var(--link) !important;
     color: #fff;
 }
 
-.card, .message {
-    box-shadow: 0.3125rem 0.3125rem 0.3125rem var(--shadow);
+/* --- 11. СКРОЛЛБАРЫ --- */
+*::-webkit-scrollbar { width: 6px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb {
+    background-color: rgba(128, 128, 128, 0);
+    border-radius: 10px;
+    transition: background-color 0.3s;
 }
 
-.Header h1 {
-    flex: 1; /* Заголовок заберет всё свободное место и вытолкнет кнопки вправо */
-}
-/* Цвет иконок теперь будет подстраиваться под тему */
-.Header button i {
-    color: var(--text-1) !important;
+*:hover::-webkit-scrollbar-thumb {
+    background-color: rgba(128, 128, 128, 0.3);
 }
 
-/* Расстояние между кнопками в хедере */
-.Header .card {
-    margin-left: 10px;
+*::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(128, 128, 128, 0.6) !important;
+}
+
+#chatBox::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 10px;
+}
+
+/* --- 12. АДАПТИВ --- */
+@media (max-width: 600px) {
+    #sidebar {
+        position: absolute;
+        left: 0; top: 0;
+        z-index: 50;
+        width: 100%;
+    }
+    #sidebar.hidden {
+        transform: translateX(-100%);
+        margin-left: 0;
+    }
 }

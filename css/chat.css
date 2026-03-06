@@ -164,6 +164,7 @@ button.card:active, .chat-item:active { transform: translate(2px, 2px); box-shad
     #sidebar.hidden { transform: translateX(-100%); margin-left: 0; }
 }
 
+
 .message-wrapper {
     -webkit-touch-callout: none;
     -webkit-user-select: none;

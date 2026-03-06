@@ -205,6 +205,24 @@ const init = () => {
     const cmdBox = document.getElementById('cmdSuggestions');
     const commands = ['/translate de ', '/translate en '];
 
+    const themeBtn = document.getElementById('themeToggle');
+    const currentTheme = localStorage.getItem('theme') || 'light';
+
+    // Устанавливаем тему при загрузке
+    document.documentElement.setAttribute('data-theme', currentTheme);
+    themeBtn.innerHTML = currentTheme === 'dark' ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
+
+    themeBtn.onclick = () => {
+        const theme = document.documentElement.getAttribute('data-theme');
+        const newTheme = theme === 'light' ? 'dark' : 'light';
+
+        document.documentElement.setAttribute('data-theme', newTheme);
+        localStorage.setItem('theme', newTheme);
+
+        // Меняем иконку
+        themeBtn.innerHTML = newTheme === 'dark' ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
+    };
+
     area.oninput = () => {
         const val = area.value;
         const lastWord = val.split(' ').pop();

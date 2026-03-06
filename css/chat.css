@@ -1,4 +1,5 @@
 :root {
+    /* LIGHT THEME (Default) */
     --bg: #FAF8F5;
     --surface: #FFFFFF;
     --surface-2: #F2EFE9;
@@ -9,14 +10,35 @@
     --text-2: #6B6460;
     --text-3: #A09890;
     --sidebar-width: 250px;
+    --shadow: var(--surface-2);
+    --font-main: "Google Sans", sans-serif;
+}
+
+[data-theme="dark"] {
+    /* DARK THEME */
+    --bg: #121212;
+    --surface: #1E1E1E;
+    --surface-2: #2A2A2A;
+    --border: #333333;
+    --secondary: #507687;
+    --link: #1cb1c5; /* Оставляем ярким для акцента */
+    --text-1: #E0E0E0;
+    --text-2: #B0B0B0;
+    --text-3: #707070;
+    --shadow: rgba(0, 0, 0, 0.5);
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 body, html {
+    font-family: var(--font-main);
+    -webkit-font-smoothing: antialiased;
+    font-optical-sizing: auto;
+}
+
+body, html {
     height: 100%; width: 100%;
     background-color: var(--bg); color: var(--text-1);
-    font-family: 'Courier New', monospace; overflow: hidden;
 }
 
 .overlay {
@@ -31,9 +53,12 @@ body, html {
     display: flex; align-items: center; padding: 1rem 1.5rem;
     border-bottom: 2px solid var(--border); background: var(--surface); flex-shrink: 0;
 }
+i {
+    color: var(--text-1);
+}
 
 .Header h1 { font-size: 1.2rem; font-weight: 900; }
-#chatTitle { color: var(--secondary); }
+#chatTitle { color: var(--link); }
 
 .msg-text img {
     display: block;
@@ -42,9 +67,22 @@ body, html {
     object-fit: contain;
 }
 
+/* Удали или закомментируй старый #menuToggle и напиши так: */
 #menuToggle {
-    margin-right: 15px; padding: 8px 12px; border-radius: 8px;
-    background: var(--surface-2); cursor: pointer; border: 2px solid var(--border);
+    margin-right: 15px;
+    cursor: pointer;
+    /* Убираем фон surface-2, чтобы он не отличался от темы и логаута */
+}
+
+/* Красим все иконки в хедере ОДИНАКОВО */
+.Header .card i {
+    color: var(--text-1) !important;
+    font-size: 1.1rem; /* Чтобы размер был ровный */
+}
+
+/* Чтобы при наведении они все одинаково подсвечивались */
+.Header .card:hover i {
+    color: var(--link) !important;
 }
 
 .chat-container { display: flex; flex: 1; overflow: hidden; position: relative; }
@@ -91,13 +129,14 @@ body, html {
 }
 
 #activeChatsList .chat-item { cursor: pointer; margin-bottom: 0.8rem; font-size: 0.8rem; display: block; width: 100%; }
-#activeChatsList .chat-item.active { border-color: var(--secondary); background: var(--surface-2); }
+#activeChatsList .chat-item.active { border-color: var(--link); background: var(--surface-2); }
 
 button.card:active, .chat-item:active { transform: translate(2px, 2px); box-shadow: 0.1rem 0.1rem 0.1rem var(--surface-2); }
 
 #chatSearch, #createGroupBtn { margin-bottom: 1rem; width: 100%; }
 #msgInput { flex: 1; min-width: 0; }
 #msgInput {
+    color: var(--text);
     min-height: 50px;
     max-height: 150px; /* Больше этого не вырастет, появится скролл */
     overflow-y: auto;
@@ -308,4 +347,21 @@ button.card:active, .chat-item:active { transform: translate(2px, 2px); box-shad
     /* Твой акцентный цвет при наведении */
     background: var(--link) !important;
     color: #fff;
+}
+
+.card, .message {
+    box-shadow: 0.3125rem 0.3125rem 0.3125rem var(--shadow);
+}
+
+.Header h1 {
+    flex: 1; /* Заголовок заберет всё свободное место и вытолкнет кнопки вправо */
+}
+/* Цвет иконок теперь будет подстраиваться под тему */
+.Header button i {
+    color: var(--text-1) !important;
+}
+
+/* Расстояние между кнопками в хедере */
+.Header .card {
+    margin-left: 10px;
 }

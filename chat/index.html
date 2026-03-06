@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="../css/chat.css">
     <link rel="icon" type="image/png" href="/logo.png">
-    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="LevNet">
     <link rel="apple-touch-icon" href="/logo.png">
@@ -51,12 +51,15 @@
 
         <div id="mainChat">
             <div id="chatBox"></div>
-            <div class="input-row">
+            <div class="input-row" style="position: relative;"> <div id="cmdSuggestions" class="card" style="display:none; position:absolute; bottom:100%; left:60px; width:calc(100% - 120px); z-index:1000; margin-bottom:10px;"></div>
+
                 <label for="imgInput" class="card" style="cursor:pointer; display:flex; align-items:center; justify-content:center; width:50px;">
                     <i class="fa-regular fa-image"></i>
                     <input type="file" id="imgInput" accept="image/*" style="display:none;">
                 </label>
+
                 <textarea id="msgInput" placeholder="Message..." class="card" rows="1" style="resize:none; transition: height 0.2s;"></textarea>
+
                 <button id="sendBtn" class="card"><i class="fa-solid fa-paper-plane"></i></button>
             </div>
         </div>

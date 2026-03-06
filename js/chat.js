@@ -11,6 +11,16 @@ let selectedMsgText = null;
 
 // --- 1. ВСЕ ФУНКЦИИ ---
 
+const translateText = async (pair, text) => {
+    try {
+        const res = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${pair}`);
+        const data = await res.json();
+        return data.responseData.translatedText;
+    } catch (e) {
+        return text;
+    }
+};
+
 async function hashPassword(password) {
     const encoder = new TextEncoder();
     const data = encoder.encode(password);
@@ -138,8 +148,32 @@ function openChat(id, targetMsgId = null) {
 
 const sendMsg = async () => {
     const inp = document.getElementById('msgInput');
-    const txt = inp.value.trim();
+    let txt = inp.value.trim();
     if (!txt || !currentChatId) return;
+
+    if (txt.startsWith('/translate ')) {
+            const parts = txt.split(' ');
+            if (parts.length >= 3) {
+                const mode = parts[1].toLowerCase();
+                const originalText = parts.slice(2).join(' ');
+                let pair = '';
+
+                if (mode === 'de') {
+                    pair = 'en|de'; // Из задания: если de, то с английского на немецкий
+                } else if (mode === 'en') {
+                    pair = 'de|en'; // Из задания: если en, то с немецкого на английский
+                } else {
+                    pair = `autodetect|${mode}`; // Для всего остального
+                }
+
+                const btn = document.getElementById('sendBtn');
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+
+                txt = await translateText(pair, originalText);
+
+                btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i>';
+            }
+        }
 
     const isGroup = currentChatId.startsWith('#');
     const targetId = currentChatId.replace(/[@#]/g, '');
@@ -168,6 +202,40 @@ const init = () => {
     if (savedSitePass === "314" && savedUser) proceed(savedUser);
 
     const area = document.getElementById('msgInput');
+    const cmdBox = document.getElementById('cmdSuggestions');
+    const commands = ['/translate de ', '/translate en '];
+
+    area.oninput = () => {
+        const val = area.value;
+        const lastWord = val.split(' ').pop();
+        cmdBox.innerHTML = '';
+
+        if (val.startsWith('/')) {
+            const matches = commands.filter(c => c.startsWith(val));
+            if (matches.length > 0 && val !== matches[0]) {
+                matches.forEach(match => {
+                    const d = document.createElement('div');
+                    d.className = 'suggest-item';
+                    d.innerText = match;
+                    d.onclick = () => {
+                        area.value = match;
+                        cmdBox.style.display = 'none';
+                        area.focus();
+                    };
+                    cmdBox.appendChild(d);
+                });
+                cmdBox.style.display = 'block';
+            } else {
+                cmdBox.style.display = 'none';
+            }
+        } else {
+            cmdBox.style.display = 'none';
+        }
+
+        // Твой старый код для авто-высоты
+        area.style.height = 'auto';
+        area.style.height = (area.scrollHeight) + 'px';
+    };
     area.addEventListener('input', () => {
         area.style.height = 'auto';
         area.style.height = (area.scrollHeight) + 'px';

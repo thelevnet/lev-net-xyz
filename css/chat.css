@@ -274,3 +274,38 @@ button.card:active, .chat-item:active { transform: translate(2px, 2px); box-shad
 *:hover {
     scrollbar-color: rgba(128, 128, 128, 0.3) transparent;
 }
+
+#cmdSuggestions {
+    display: none;
+    position: absolute;
+    bottom: 100%;
+    left: 60px;
+    width: calc(100% - 120px);
+    z-index: 1000;
+    margin-bottom: 10px;
+
+    /* Юзаем твою переменную, но форсим непрозрачность */
+    background: var(--surface) !important;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+
+    /* Тень погуще, чтобы отлепилось от чата */
+    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+    overflow: hidden;
+}
+
+.suggest-item {
+    padding: 12px;
+    /* Берем твой цвет карточек */
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+    border-bottom: 1px solid var(--border);
+    transition: 0.2s;
+}
+
+.suggest-item:hover {
+    /* Твой акцентный цвет при наведении */
+    background: var(--link) !important;
+    color: #fff;
+}

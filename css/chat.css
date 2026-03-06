@@ -98,7 +98,7 @@ button.card:active, .chat-item:active { transform: translate(2px, 2px); box-shad
 #chatSearch, #createGroupBtn { margin-bottom: 1rem; width: 100%; }
 #msgInput { flex: 1; min-width: 0; }
 #msgInput {
-    min-height: 40px;
+    min-height: 50px;
     max-height: 150px; /* Больше этого не вырастет, появится скролл */
     overflow-y: auto;
     resize: none;

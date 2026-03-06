@@ -35,6 +35,13 @@ body, html {
 .Header h1 { font-size: 1.2rem; font-weight: 900; }
 #chatTitle { color: var(--secondary); }
 
+.msg-text img {
+    display: block;
+    margin-top: 5px;
+    max-height: 300px;
+    object-fit: contain;
+}
+
 #menuToggle {
     margin-right: 15px; padding: 8px 12px; border-radius: 8px;
     background: var(--surface-2); cursor: pointer; border: 2px solid var(--border);

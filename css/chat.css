@@ -81,7 +81,7 @@ i {
 .Header {
     display: flex;
     align-items: center;
-    padding: 1rem 1.5rem;
+    padding: 1rem 0rem;
     border-bottom: 2px solid var(--border);
     background: var(--surface);
     flex-shrink: 0;
@@ -110,9 +110,13 @@ i {
     color: var(--link);
 }
 
-#menuToggle {
-    margin-right: 15px;
+#menuToggle, #themeToggle, #logoutBtn {
     cursor: pointer;
+    border: 0px;
+    box-shadow: none;
+}
+#menuToggle:active, #themeToggle:active, #logoutBtn:active {
+    transform: none;
 }
 
 /* --- 5. САЙДБАР --- */

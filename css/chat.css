@@ -501,3 +501,18 @@ button.card:active, .chat-item:active {
     }
     #sidebar.hidden { transform: translateX(-100%); margin-left: 0; }
 }
+
+input, textarea, button, select {
+    color: var(--text-1);
+    background: var(--surface);
+    font-family: var(--font-main);
+}
+
+#msgMenu {
+    background: var(--surface) !important;
+    color: var(--text-1);
+}
+
+.overlay * {
+    color: var(--text-1);
+}

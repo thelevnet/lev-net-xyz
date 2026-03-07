@@ -556,9 +556,8 @@ const uploadImg = async (file) => {
 // ─── Init ─────────────────────────────────────────────────────────────────────
 
 const init = () => {
-    const savedSitePass = localStorage.getItem('siteAuth');
     const savedUser = localStorage.getItem('currentUser');
-    if (savedSitePass === "314" && savedUser) proceed(savedUser);
+    if (savedUser) proceed(savedUser);
 
     const themeBtn = document.getElementById('themeToggle');
     const currentTheme = localStorage.getItem('theme') || 'light';

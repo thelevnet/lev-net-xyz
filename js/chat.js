@@ -23,6 +23,7 @@ let currentChatRef = null;
 let selectedMsgId = null;
 let selectedMsgText = null;
 let isFirstLoad = true;
+let reactionTargetMsgId = null; // Сюда сохраним ID сообщения при тапе
 
 // --- Уведомления (Multi-device) ---
 const saveTokenToDb = (token) => {
@@ -131,12 +132,27 @@ function openChat(id, targetMsgId = null) {
                 }
 
                 // Добавляем обработчик для меню (Safari любит touchstart)
-                wrapper.oncontextmenu = (e) => showMenu(e, msgKey, m.text, isMe);
+                let touchTimer;
+
+                // Обработка начала касания (iOS/Android)
                 wrapper.addEventListener('touchstart', (e) => {
-                    let timer;
-                    timer = setTimeout(() => showMenu(e, msgKey, m.text, isMe), 500);
-                    wrapper.addEventListener('touchend', () => clearTimeout(timer));
+                    touchTimer = setTimeout(() => {
+                        showMenu(e, msgKey, m.text, isMe); // Если держим 0.5 сек — открываем меню (Edit/Del)
+                        touchTimer = null; // Обнуляем, чтобы не сработал обычный тап
+                    }, 800);
                 }, {passive: true});
+
+                // Обработка отпускания пальца
+                wrapper.addEventListener('touchend', (e) => {
+                    if (touchTimer) {
+                        clearTimeout(touchTimer); // Прерываем таймер длинного нажатия
+                        showReactionPicker(e, msgKey); // Раз таймер не кончился — это был быстрый тап (Реакции)
+                    }
+                });
+
+                // Для компьютеров (правая кнопка мыши — меню, левая — реакции)
+                wrapper.oncontextmenu = (e) => showMenu(e, msgKey, m.text, isMe);
+                wrapper.onclick = (e) => showReactionPicker(e, msgKey);
 
                 // Показываем имя только в группах и только если это не моё сообщение
                 const isGroup = currentChatId.startsWith('#');
@@ -145,7 +161,28 @@ function openChat(id, targetMsgId = null) {
                 if (isGroup && !isMe && m.user !== lastUser) {
                     authorHtml = `<div class="msg-name">${m.user}</div>`;
                 }
-                wrapper.innerHTML = `<div class="message card">${authorHtml}<div class="msg-text">${content}</div><div class="msg-time">${timeStr}</div></div>`;
+                let reactionsHtml = '<div class="reactions-container">';
+                if (m.reactions) {
+                    const counts = {};
+                    Object.values(m.reactions).forEach(emoji => {
+                        counts[emoji] = (counts[emoji] || 0) + 1;
+                    });
+                    Object.entries(counts).forEach(([emoji, count]) => {
+                        // Рисуем баджи только если есть смайлы
+                        reactionsHtml += `<div class="reaction-badge">${emoji} ${count > 1 ? count : ''}</div>`;
+                    });
+                }
+                reactionsHtml += '</div>';
+
+                // ОБНОВИ ЭТОТ КУСОК: вставь ${reactionsHtml} между текстом и временем
+                wrapper.innerHTML = `
+                    <div class="message card">
+                        ${authorHtml}
+                        <div class="msg-text">${content}</div>
+                        ${reactionsHtml}
+                        <div class="msg-time">${timeStr}</div>
+                    </div>
+                `;
                 box.appendChild(wrapper);
                 lastUser = m.user;
             });
@@ -446,3 +483,66 @@ window.addEventListener('load', () => {
         console.warn('Service Worker не поддерживается этим браузером (Safari в обычном режиме?)');
     }
 });
+
+// Показывает панель с эмодзи
+// Показ пикера с защитой от вылета за края
+const showReactionPicker = (e, msgId) => {
+    e.stopPropagation(); // Чтобы сразу не сработал клик закрытия
+    reactionTargetMsgId = msgId;
+    const picker = document.getElementById('reactionPicker');
+
+    // Сначала показываем, чтобы рассчитать ширину
+    picker.style.display = 'flex';
+
+    let x = e.clientX || (e.touches ? e.touches[0].clientX : 0);
+    let y = e.clientY || (e.touches ? e.touches[0].clientY : 0);
+
+    const pWidth = picker.offsetWidth;
+    const pHeight = picker.offsetHeight;
+
+    // Проверка правой границы
+    if (x + pWidth > window.innerWidth) {
+        x = window.innerWidth - pWidth - 15;
+    }
+    // Проверка левой границы
+    if (x < 15) x = 15;
+
+    // Позиционируем чуть выше места клика
+    picker.style.left = `${x}px`;
+    picker.style.top = `${y - pHeight - 10}px`;
+};
+
+// Закрытие при клике мимо или скролле
+document.addEventListener('mousedown', (e) => {
+    const picker = document.getElementById('reactionPicker');
+    if (picker.style.display === 'flex' && !picker.contains(e.target)) {
+        picker.style.display = 'none';
+    }
+});
+
+// На мобилках лучше закрывать при скролле чата
+document.getElementById('chatBox').addEventListener('scroll', () => {
+    document.getElementById('reactionPicker').style.display = 'none';
+});
+
+// Отправляет реакцию в базу
+window.setReaction = (emoji) => {
+    if (!reactionTargetMsgId || !currentChatId) return;
+
+    let dbId = currentChatId.startsWith('#')
+        ? 'group_' + currentChatId.replace('#', '')
+        : [currentUser, currentChatId].sort().join('_').replace(/@/g, '');
+
+    const userKey = currentUser.replace('@','');
+    const reactionRef = ref(db, `messages/${dbId}/${reactionTargetMsgId}/reactions/${userKey}`);
+
+    get(reactionRef).then(snap => {
+        if (snap.val() === emoji) {
+            set(reactionRef, null); // Убираем, если нажали тот же смайл
+        } else {
+            set(reactionRef, emoji); // Ставим новый
+        }
+    });
+
+    document.getElementById('reactionPicker').style.display = 'none';
+};

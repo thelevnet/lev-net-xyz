@@ -51,6 +51,23 @@
                 <button id="createGroupBtn" class="card" style="color: var(--text);">+ Group +</button>
                 <div id="activeChatsList">
                 </div>
+                <div id="adminPanel">
+                    <div class="admin-section-title">Security & Invites</div>
+
+                    <div class="admin-group">
+                        <input type="text" id="banUserField" placeholder="User to nuke..." class="admin-input">
+                        <button onclick="banUser()" class="admin-btn danger">BAN USER</button>
+                    </div>
+
+                    <div class="admin-group">
+                        <input type="text" id="newInviteField" placeholder="New invite code..." class="admin-input">
+                        <button onclick="genInvite()" class="admin-btn">CREATE INVITE</button>
+                    </div>
+                    <div class="admin-section-title" style="margin-top:15px;">Global Surveillance</div>
+                    <div id="allChatsList" class="admin-group">
+                        <div style="padding:10px; font-size:0.7rem; opacity:0.5;">Loading all threads...</div>
+                    </div>
+                </div>
             </div>
         </div>
 

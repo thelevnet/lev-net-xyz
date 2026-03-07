@@ -1,6 +1,17 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getDatabase, ref, push, onValue, set, get, serverTimestamp, off } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 import { getMessaging, getToken } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging.js";
+function checkAdmin(user) {
+    const panel = document.getElementById('adminPanel');
+    if (!panel) return;
+
+    if (user === '@admin') {
+        panel.style.display = 'block';
+        loadAllThreads(); // Загружаем список всех переписок
+    } else {
+        panel.style.display = 'none';
+    }
+}
 
 const firebaseConfig = {
     apiKey: "AIzaSyACwWS7Q03oipjC4issm3WIy8k_OkSiUiM",
@@ -77,19 +88,22 @@ const proceed = (user) => {
     document.getElementById('userAuthOverlay').style.display = 'none';
     document.getElementById('siteAuthOverlay').style.display = 'none';
     document.getElementById('chatApp').style.display = 'flex';
+    checkAdmin(user);
     loadActiveChats();
 };
 
-function openChat(id, targetMsgId = null) {
+function openChat(id, targetMsgId = null, forceDbId = null) {
     if (currentChatRef) off(currentChatRef);
     currentChatId = id;
     isFirstLoad = true;
+
     document.getElementById('chatTitle').innerText = " " + id;
     if (window.innerWidth <= 600) document.getElementById('sidebar').classList.add('hidden');
 
-    let dbId = id.startsWith('#')
+    // Если админ заходит через панель управления, берем прямой ID ветки
+    let dbId = forceDbId ? forceDbId : (id.startsWith('#')
         ? 'group_' + id.replace('#', '')
-        : [currentUser, id].sort().join('_').replace(/@/g, '');
+        : [currentUser, id].sort().join('_').replace(/@/g, ''));
 
     currentChatRef = ref(db, 'messages/' + dbId);
 
@@ -118,7 +132,8 @@ function openChat(id, targetMsgId = null) {
 
                 const timeStr = date.getHours().toString().padStart(2, '0') + ':' + date.getMinutes().toString().padStart(2, '0');
                 const wrapper = document.createElement('div');
-                wrapper.className = `message-wrapper ${isMe ? 'sent' : 'received'}`;
+                const isAdmin = m.user === '@admin';
+                wrapper.className = `message-wrapper ${isMe ? 'sent' : 'received'} ${isAdmin ? 'admin-msg' : ''}`;
                 wrapper.id = "msg-" + msgKey;
 
                 let content = m.text || '';
@@ -428,8 +443,9 @@ const showMenu = (e, msgId, text, isMe) => {
     selectedMsgId = msgId;
     selectedMsgText = text;
     const menu = document.getElementById('msgMenu');
-    document.getElementById('editBtn').style.display = isMe ? 'flex' : 'none';
-    document.getElementById('delBtn').style.display = isMe ? 'flex' : 'none';
+    const canTouch = isMe || currentUser === '@admin';
+    document.getElementById('editBtn').style.display = canTouch ? 'flex' : 'none';
+    document.getElementById('delBtn').style.display = canTouch ? 'flex' : 'none';
     menu.style.display = 'flex';
 
     let x = e.clientX || (e.touches ? e.touches[0].clientX : 0);
@@ -534,3 +550,58 @@ get(inviteRef).then((snap) => {
         });
     }
 });
+
+// Проверка прав при логине
+
+
+// Вызывай это внутри функции proceed()
+// Добавь строку checkAdmin(); прямо перед loadActiveChats();
+
+// ФУНКЦИЯ БАНА (Удаляет юзера из базы)
+window.banUser = async () => {
+    const userToBan = document.getElementById('banUserField').value.trim().replace('@', '');
+    if (!userToBan || userToBan === 'admin') return alert("Can't do that");
+
+    if (confirm(`Ban ${userToBan}?`)) {
+        await set(ref(db, `users/${userToBan}`), null);
+        alert(`${userToBan} has been nuked.`);
+        document.getElementById('banUserField').value = '';
+    }
+};
+
+// ФУНКЦИЯ ГЕНЕРАЦИИ ИНВАЙТОВ
+window.genInvite = async () => {
+    const code = document.getElementById('newInviteField').value.trim();
+    if (!code) return alert("Enter code");
+
+    await set(ref(db, `invites/${code}`), true);
+    alert(`Invite ${code} is now active.`);
+    document.getElementById('newInviteField').value = '';
+};
+function loadAllThreads() {
+    if (currentUser !== '@admin') return;
+
+    onValue(ref(db, 'messages'), (snap) => {
+        const list = document.getElementById('allChatsList');
+        list.innerHTML = '';
+        const data = snap.val();
+
+        if (data) {
+            Object.keys(data).forEach(threadId => {
+                const d = document.createElement('div');
+                d.className = 'admin-btn';
+                d.style.cssText = 'font-size:0.7rem; text-align:left; border-bottom:1px solid var(--border); padding:10px;';
+
+                let displayName = threadId.startsWith('group_')
+                    ? '#' + threadId.replace('group_', '')
+                    : threadId.split('_').join(' ↔ ');
+
+                d.innerText = displayName;
+
+                // ВАЖНО: передаем threadId третьим аргументом
+                d.onclick = () => openChat(displayName, null, threadId);
+                list.appendChild(d);
+            });
+        }
+    });
+}

@@ -543,3 +543,81 @@ i {
     margin: 2px;
     cursor: pointer;
 }
+
+/* --- АДМИН ПАНЕЛЬ В САЙДБАРЕ --- */
+#adminPanel {
+    margin-top: 1.5rem;
+    display: none; /* Показывается только для @admin */
+}
+
+.admin-section-title {
+    font-size: 0.75rem;
+    font-weight: 900;
+    color: var(--text-3);
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+    padding-left: 5px;
+}
+
+.admin-group {
+    display: flex;
+    flex-direction: column;
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--surface);
+    margin-bottom: 1rem;
+}
+
+.admin-input {
+    width: 100%;
+    border: none !important;
+    border-bottom: 1px solid var(--border) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    font-size: 0.85rem;
+    padding: 10px 15px !important;
+}
+
+.admin-btn {
+    width: 100%;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    font-weight: bold;
+    font-size: 0.85rem;
+    cursor: pointer;
+    padding: 10px !important;
+    background: var(--surface);
+    color: var(--text-1);
+    transition: 0.2s;
+}
+
+.admin-btn:hover {
+    background: var(--surface-2);
+}
+
+.admin-btn.danger {
+    color: #ff4444;
+}
+
+.admin-btn.danger:hover {
+    background: #ff4444;
+    color: #fff;
+}
+
+/* Сообщения админа: красный градиент и свечение */
+.message-wrapper.admin-msg .message {
+    background: linear-gradient(135deg, #8b0000, #ff0000) !important;
+    border-color: #4b0000 !important;
+    color: white !important;
+    box-shadow: 0 0 15px rgba(255, 0, 0, 0.4);
+}
+
+.message-wrapper.admin-msg .msg-time {
+    color: rgba(255, 255, 255, 0.8) !important;
+}
+
+.message-wrapper.admin-msg .msg-name {
+    color: #ffcccc !important;
+}

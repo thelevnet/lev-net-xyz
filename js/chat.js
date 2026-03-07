@@ -1217,9 +1217,15 @@ const init = () => {
     };
     area.onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); } };
 
-    document.getElementById('settingsBtn').onclick = () => document.getElementById('settingsPanel').classList.toggle('hidden');
+    document.getElementById('settingsBtn').onclick = () => {
+        document.getElementById('settingsPanel').classList.toggle('hidden');
+        document.getElementById('sidebar').classList.add('hidden');
+    };
     document.getElementById('logoutBtn').onclick = () => { setTyping(false); localStorage.clear(); location.reload(); };
-    document.getElementById('menuToggle').onclick = () => document.getElementById('sidebar').classList.toggle('hidden');
+    document.getElementById('menuToggle').onclick = () => {
+        document.getElementById('sidebar').classList.toggle('hidden');
+        document.getElementById('settingsPanel').classList.add('hidden');
+    };
     document.getElementById('sendBtn').onclick = sendMsg;
     document.getElementById('openFeedBtn').onclick = window.openFeed;
     document.getElementById('createGroupBtn').onclick = async () => {

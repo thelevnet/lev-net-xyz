@@ -131,50 +131,49 @@ function openChat(id, targetMsgId = null) {
                     content = content.replace(/(@[a-zA-Z0-9_]+)/g, '<span class="mention">$1</span>');
                 }
 
-                // Добавляем обработчик для меню (Safari любит touchstart)
+                // --- ЛОГИКА ЛОНГ-ПРЕССА ---
                 let touchTimer;
-
-                // Обработка начала касания (iOS/Android)
                 wrapper.addEventListener('touchstart', (e) => {
                     touchTimer = setTimeout(() => {
-                        showMenu(e, msgKey, m.text, isMe); // Если держим 0.5 сек — открываем меню (Edit/Del)
-                        touchTimer = null; // Обнуляем, чтобы не сработал обычный тап
-                    }, 800);
+                        reactionTargetMsgId = msgKey; // Запоминаем ID для реакций
+                        showMenu(e, msgKey, m.text, isMe);
+                        touchTimer = null;
+                    }, 600); // Порог зажатия
                 }, {passive: true});
 
-                // Обработка отпускания пальца
-                wrapper.addEventListener('touchend', (e) => {
-                    if (touchTimer) {
-                        clearTimeout(touchTimer); // Прерываем таймер длинного нажатия
-                        showReactionPicker(e, msgKey); // Раз таймер не кончился — это был быстрый тап (Реакции)
-                    }
+                wrapper.addEventListener('touchend', () => {
+                    if (touchTimer) clearTimeout(touchTimer);
                 });
 
-                // Для компьютеров (правая кнопка мыши — меню, левая — реакции)
-                wrapper.oncontextmenu = (e) => showMenu(e, msgKey, m.text, isMe);
-                wrapper.onclick = (e) => showReactionPicker(e, msgKey);
+                wrapper.addEventListener('touchmove', () => {
+                    if (touchTimer) clearTimeout(touchTimer);
+                });
 
-                // Показываем имя только в группах и только если это не моё сообщение
-                const isGroup = currentChatId.startsWith('#');
-                let authorHtml = '';
+                wrapper.oncontextmenu = (e) => {
+                    e.preventDefault();
+                    reactionTargetMsgId = msgKey;
+                    showMenu(e, msgKey, m.text, isMe);
+                };
 
-                if (isGroup && !isMe && m.user !== lastUser) {
-                    authorHtml = `<div class="msg-name">${m.user}</div>`;
-                }
-                let reactionsHtml = '<div class="reactions-container">';
+                // Обычный клик просто скрывает меню
+                wrapper.onclick = () => {
+                    document.getElementById('msgMenu').style.display = 'none';
+                };
+
+                // --- СБОРКА РЕАКЦИЙ ПОД ТЕКСТОМ ---
+                let reactionsHtml = '<div class="reactions-container" style="display:flex; gap:4px; margin-top:4px; flex-wrap:wrap;">';
                 if (m.reactions) {
                     const counts = {};
-                    Object.values(m.reactions).forEach(emoji => {
-                        counts[emoji] = (counts[emoji] || 0) + 1;
-                    });
+                    Object.values(m.reactions).forEach(emoji => { counts[emoji] = (counts[emoji] || 0) + 1; });
                     Object.entries(counts).forEach(([emoji, count]) => {
-                        // Рисуем баджи только если есть смайлы
-                        reactionsHtml += `<div class="reaction-badge">${emoji} ${count > 1 ? count : ''}</div>`;
+                        reactionsHtml += `<div class="reaction-badge" style="background:rgba(255,255,255,0.1); border-radius:10px; padding:2px 6px; font-size:0.8rem; cursor:pointer;">${emoji} ${count > 1 ? count : ''}</div>`;
                     });
                 }
                 reactionsHtml += '</div>';
 
-                // ОБНОВИ ЭТОТ КУСОК: вставь ${reactionsHtml} между текстом и временем
+                const isGroup = currentChatId.startsWith('#');
+                let authorHtml = (isGroup && !isMe && m.user !== lastUser) ? `<div class="msg-name">${m.user}</div>` : '';
+
                 wrapper.innerHTML = `
                     <div class="message card">
                         ${authorHtml}
@@ -183,6 +182,7 @@ function openChat(id, targetMsgId = null) {
                         <div class="msg-time">${timeStr}</div>
                     </div>
                 `;
+
                 box.appendChild(wrapper);
                 lastUser = m.user;
             });
@@ -288,19 +288,42 @@ const init = () => {
     });
 
     document.getElementById('userAuthBtn').onclick = async () => {
-        let uName = document.getElementById('loginUser').value.trim().replace('@', '');
+        let uName = document.getElementById('loginUser').value.trim();
         const uPassRaw = document.getElementById('loginPass').value.trim();
+        const inviteCode = prompt("Enter Invite Code:"); // Запрос кода
 
-        // Блокируем опасные ники
-        if (uName.toLowerCase === 'group') {
-           return alert("This name is reserved");
+        // 1. Проверка инвайта
+        const invSnap = await get(ref(db, `invites/${inviteCode}`));
+        if (!invSnap.exists()) return alert("Invalid or used invite code!");
+
+        // 2. Фильтр символов (только a-z, 0-9)
+        const nameRegex = /^[a-zA-Z0-9]+$/;
+        if (!nameRegex.test(uName)) {
+            return alert("Only letters and numbers allowed in username!");
         }
+
+        // 3. Запрет админских ников
+        const forbidden = ['admin', 'owner', 'system', 'root', 'support', 'moderator'];
+        if (forbidden.some(word => uName.toLowerCase().includes(word))) {
+            return alert("This name is forbidden!");
+        }
+
         if (uName.length < 2 || !uPassRaw) return alert("Fill in everything!");
+
         const uPass = await hashPassword(uPassRaw);
         uName = '@' + uName;
-        const snap = await get(ref(db, 'users/' + uName.replace('@', '')));
-        if (snap.exists() && snap.val().pass !== uPass) return alert("Wrong password!");
-        if (!snap.exists()) await set(ref(db, 'users/' + uName.replace('@', '')), { pass: uPass });
+
+        const userRef = ref(db, 'users/' + uName.replace('@', ''));
+        const snap = await get(userRef);
+
+        if (snap.exists()) {
+            if (snap.val().pass !== uPass) return alert("Wrong password!");
+        } else {
+            // Если это новый юзер — создаем его и УДАЛЯЕМ инвайт
+            await set(userRef, { pass: uPass });
+            await set(ref(db, `invites/${inviteCode}`), null);
+        }
+
         localStorage.setItem('currentUser', uName);
         proceed(uName);
     };
@@ -482,47 +505,6 @@ window.addEventListener('load', () => {
     } else {
         console.warn('Service Worker не поддерживается этим браузером (Safari в обычном режиме?)');
     }
-});
-
-// Показывает панель с эмодзи
-// Показ пикера с защитой от вылета за края
-const showReactionPicker = (e, msgId) => {
-    e.stopPropagation(); // Чтобы сразу не сработал клик закрытия
-    reactionTargetMsgId = msgId;
-    const picker = document.getElementById('reactionPicker');
-
-    // Сначала показываем, чтобы рассчитать ширину
-    picker.style.display = 'flex';
-
-    let x = e.clientX || (e.touches ? e.touches[0].clientX : 0);
-    let y = e.clientY || (e.touches ? e.touches[0].clientY : 0);
-
-    const pWidth = picker.offsetWidth;
-    const pHeight = picker.offsetHeight;
-
-    // Проверка правой границы
-    if (x + pWidth > window.innerWidth) {
-        x = window.innerWidth - pWidth - 15;
-    }
-    // Проверка левой границы
-    if (x < 15) x = 15;
-
-    // Позиционируем чуть выше места клика
-    picker.style.left = `${x}px`;
-    picker.style.top = `${y - pHeight - 10}px`;
-};
-
-// Закрытие при клике мимо или скролле
-document.addEventListener('mousedown', (e) => {
-    const picker = document.getElementById('reactionPicker');
-    if (picker.style.display === 'flex' && !picker.contains(e.target)) {
-        picker.style.display = 'none';
-    }
-});
-
-// На мобилках лучше закрывать при скролле чата
-document.getElementById('chatBox').addEventListener('scroll', () => {
-    document.getElementById('reactionPicker').style.display = 'none';
 });
 
 // Отправляет реакцию в базу

@@ -73,6 +73,14 @@
 
 <script type="module" src="../js/chat.js"></script>
 <div id="msgMenu" class="card" style="display:none; position:fixed; z-index:10000; width:150px; padding:5px; flex-direction:column; gap:5px;">
+    <div style="display:flex; flex-wrap:wrap; gap:5px; padding:5px; border-bottom:1px solid var(--border); margin-bottom:5px; justify-content:center;">
+        <span class="reaction-item" style="cursor:pointer; font-size:20px;" onclick="setReaction('👍')">👍</span>
+        <span class="reaction-item" style="cursor:pointer; font-size:20px;" onclick="setReaction('👎')">👎</span>
+        <span class="reaction-item" style="cursor:pointer; font-size:20px;" onclick="setReaction('😂')">😂</span>
+        <span class="reaction-item" style="cursor:pointer; font-size:20px;" onclick="setReaction('🔥')">🔥</span>
+        <span class="reaction-item" style="cursor:pointer; font-size:20px;" onclick="setReaction('🎉')">🎉</span>
+    </div>
+
     <button onclick="copyMsg()" class="card" style="font-size:0.8rem; text-align:left;"><i class="fa-regular fa-copy"></i> Copy</button>
     <button id="editBtn" class="card" style="font-size:0.8rem; text-align:left;"><i class="fa-regular fa-pen-to-square"></i> Edit</button>
     <button id="delBtn" class="card" style="font-size:0.8rem; text-align:left; color:red;"><i class="fa-regular fa-trash-can"></i> Delete</button>
@@ -86,15 +94,6 @@
             <button id="modalConfirm" class="card" style="padding: 5px 15px; background: var(--link); color: white;">OK</button>
         </div>
     </div>
-</div>
-<div id="reactionPicker" class="reaction-picker">
-    <span class="reaction-item" onclick="setReaction('👍')">👍</span>
-    <span class="reaction-item" onclick="setReaction('👎')">👎</span>
-    <span class="reaction-item" onclick="setReaction('😂')">😂</span>
-    <span class="reaction-item" onclick="setReaction('😢')">😢</span>
-    <span class="reaction-item" onclick="setReaction('😮')">😮</span>
-    <span class="reaction-item" onclick="setReaction('🔥')">🔥</span>
-    <span class="reaction-item" onclick="setReaction('🎉')">🎉</span>
 </div>
 </body>
 </html>

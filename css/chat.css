@@ -29,7 +29,7 @@
 
 /* ─── 2. RESET & BASE ────────────────────────────────────────────────────────── */
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-
+* { user-select: none; -webkit-user-select: none; }
 body, html {
     height: 100%;
     width: 100%;
@@ -204,7 +204,6 @@ button.card:active, .chat-item:active {
 
 .msg-text {
     margin-bottom: 0.2rem;
-    user-select: text;
     white-space: pre-wrap;
     word-wrap: break-word;
 }
@@ -231,7 +230,7 @@ button.card:active, .chat-item:active {
 .message-wrapper.sent .message {
     background: var(--link);
     color: white;
-    border-color: #169bad;
+    border-color: var(--link);
     border-bottom-right-radius: 4px;
 }
 
@@ -286,7 +285,7 @@ button.card:active, .chat-item:active {
     filter: none;
     background: var(--link);
     cursor: pointer;
-    box-shadow: 0 0 10px rgba(28, 177, 197, 0.4);
+    box-shadow: 0 0 10px color-mix(in srgb, var(--link) 40%, transparent);
     transform: scale(1.05);
 }
 
@@ -295,7 +294,7 @@ button.card:active, .chat-item:active {
 /* ─── 10. MENTIONS & EFFECTS ─────────────────────────────────────────────────── */
 .mention {
     color: var(--link);
-    background: rgba(28, 177, 197, 0.15);
+    background: color-mix(in srgb, var(--link) 15%, transparent);
     font-weight: 900;
     text-decoration: underline;
 }
@@ -307,10 +306,9 @@ button.card:active, .chat-item:active {
     border-radius: 4px;
     font-weight: 900;
 }
-
 @keyframes messageGlow {
-    0%   { box-shadow: 0 0 0 var(--link);   background: rgba(28, 177, 197, 0.2); }
-    50%  { box-shadow: 0 0 20px var(--link); background: rgba(28, 177, 197, 0.4); }
+    0%   { box-shadow: 0 0 0 var(--link);   background: color-mix(in srgb, var(--link) 20%, transparent); }
+    50%  { box-shadow: 0 0 20px var(--link); background: color-mix(in srgb, var(--link) 40%, transparent); }
     100% { box-shadow: 0 0 0 var(--link);   background: transparent; }
 }
 
@@ -347,8 +345,17 @@ button.card:active, .chat-item:active {
     backdrop-filter: blur(10px);
 }
 
-.reaction-item { font-size: 24px; cursor: pointer; transition: transform 0.1s; }
-.reaction-item:hover { transform: scale(1.3); }
+.reaction-item {
+    font-size: 18px;
+    cursor: pointer;
+    transition: 0.15s;
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    padding: 4px 6px;
+    background: var(--surface);
+    line-height: 1;
+}
+.reaction-item:hover { transform: scale(1.15); border-color: var(--link); background: var(--surface-2); }
 
 /* ─── 12. SUGGESTIONS ────────────────────────────────────────────────────────── */
 #cmdSuggestions, #searchSuggestions {
@@ -543,4 +550,48 @@ input, textarea, button, select {
         transform: translateX(100%);
         margin-right: 0;
     }
+}
+
+/* ─── 18. ACCENT THEMES ──────────────────────────────────────────────────────── */
+:root,
+[data-theme="light"] { --link: #1cb1c5; --secondary: #A8C8D6; }
+
+[data-accent="cyan"]   { --link: #1cb1c5; --secondary: #A8C8D6; }
+[data-accent="blue"]   { --link: #2979ff; --secondary: #90b4f7; }
+[data-accent="teal"]   { --link: #00897b; --secondary: #80cbc4; }
+[data-accent="green"]  { --link: #43a047; --secondary: #a5d6a7; }
+[data-accent="purple"] { --link: #7c4dff; --secondary: #b39ddb; }
+[data-accent="pink"]   { --link: #e91e8c; --secondary: #f48fb1; }
+[data-accent="red"]    { --link: #e53935; --secondary: #ef9a9a; }
+[data-accent="orange"] { --link: #fb8c00; --secondary: #ffcc80; }
+[data-accent="yellow"] { --link: #f9a825; --secondary: #fff176; }
+
+/* тёмная тема НЕ переопределяет акцент */
+[data-theme="dark"][data-accent="cyan"]   { --link: #1cb1c5; --secondary: #507687; }
+[data-theme="dark"][data-accent="blue"]   { --link: #2979ff; --secondary: #4a6fa5; }
+[data-theme="dark"][data-accent="teal"]   { --link: #00897b; --secondary: #2d6e68; }
+[data-theme="dark"][data-accent="green"]  { --link: #43a047; --secondary: #2d6e30; }
+[data-theme="dark"][data-accent="purple"] { --link: #7c4dff; --secondary: #4a3580; }
+[data-theme="dark"][data-accent="pink"]   { --link: #e91e8c; --secondary: #7a1050; }
+[data-theme="dark"][data-accent="red"]    { --link: #e53935; --secondary: #7a1a1a; }
+[data-theme="dark"][data-accent="orange"] { --link: #fb8c00; --secondary: #7a4a00; }
+[data-theme="dark"][data-accent="yellow"] { --link: #f9a825; --secondary: #7a5500; }
+
+.accent-swatch {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: 0.15s;
+    flex-shrink: 0;
+}
+.accent-swatch.active { border-color: var(--text-1); transform: scale(1.1); }
+
+.accent-picker {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    padding: 12px;
+    border: none !important;
+    justify-items: center;
 }

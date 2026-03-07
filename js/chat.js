@@ -285,17 +285,17 @@ function openChat(id, targetMsgId = null, forceDbId = null) {
             }
 
             const wrapper = document.createElement('div');
-            wrapper.className = `message-wrapper ${isMe ? 'sent' : 'received'}`;
+            wrapper.className = `message-wrapper ${isMe ? 'sent' : 'received'} ${m.user === '@admin' ? 'admin-msg' : ''}`;
             wrapper.id = 'msg-' + msgKey;
 
             let content = m.text || '';
             if (content.startsWith('IMG_URL:')) {
                 const url = content.replace('IMG_URL:', '');
-                content = `<img src="${url}" style="max-width:100%;border-radius:8px;cursor:pointer;display:block;" onclick="window.open('${url}')">`;
+                content = `<img src="${url}" style="max-width:100%;border-radius:8px;cursor:pointer;display:block;" onclick="window.openImg('${url}')">`;
             } else {
                 content = content
-                    .replace(/(https?:\/\/[^\s]+)/g, url => `<a href="${url}" target="_blank" style="color:inherit;text-decoration:underline;">${url}</a>`)
-                    .replace(/(@[a-zA-Z0-9_]+)/g, '<span class="mention">$1</span>');
+                    .replace(/(https?:\/\/[^\s]+)/g, url => `<a href="${url}" target="_blank" style="color:inherit;text-decoration:underline;">${url}</a><div style="position:relative;margin-top:6px;border-radius:8px;overflow:hidden;background:#fff;"><iframe src="${url}" style="width:100%;height:200px;border:none;display:block;" loading="lazy" sandbox="allow-scripts allow-same-origin allow-forms"></iframe><div onclick="window.openIframe('${url}')" style="position:absolute;top:0;left:0;width:100%;height:100%;cursor:pointer;z-index:1;"></div></div>`)
+                    .replace(/(@[a-zA-Z0-9_]+)/g, '<span class="mention" style="cursor:pointer" onclick="openChat(\'$1\')">$1</span>');
             }
 
             let touchTimer;
@@ -341,6 +341,8 @@ function openChat(id, targetMsgId = null, forceDbId = null) {
                 const nameEl = document.createElement('span');
                 nameEl.style.cssText = 'font-size:0.72rem;font-weight:900;color:var(--link);';
                 nameEl.innerText = m.user;
+                avatarRow.style.cursor = 'pointer';
+                avatarRow.onclick = (e) => { e.stopPropagation(); openChat(m.user); };
 
                 avatarRow.appendChild(avatarEl);
                 avatarRow.appendChild(nameEl);
@@ -352,8 +354,6 @@ function openChat(id, targetMsgId = null, forceDbId = null) {
                     if (url) avatarEl.replaceWith(makeAvatarEl(url, m.user, 20));
                 });
             }
-
-            box.appendChild(wrapper);
 
             box.appendChild(wrapper);
             lastUser = m.user;
@@ -375,7 +375,7 @@ function openChat(id, targetMsgId = null, forceDbId = null) {
         }
     });
 }
-
+window.openChat = openChat;
 // ─── Send ─────────────────────────────────────────────────────────────────────
 
 const sendMsg = async () => {
@@ -420,7 +420,35 @@ const sendMsg = async () => {
     inp.style.height = '50px';
     document.getElementById('sendBtn').classList.remove('active');
 };
-
+window.openIframe = (url) => {
+    const overlay = document.createElement('div');
+    overlay.id = 'iframeOverlay';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100dvh;z-index:99999;display:flex;flex-direction:column;';
+    overlay.innerHTML = `
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 15px;background:var(--surface);border-bottom:2px solid var(--border);flex-shrink:0;">
+            <button onclick="document.getElementById('iframeOverlay').remove()" style="border:2px solid var(--border);background:var(--surface);border-radius:8px;width:32px;height:32px;cursor:pointer;font-size:1rem;color:var(--text-1);display:flex;align-items:center;justify-content:center;">✕</button>
+            <a href="${url}" target="_blank" style="font-size:0.8rem;color:var(--link);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">${url}</a>
+        </div>
+        <iframe src="${url}" style="flex:1;border:none;background:#fff;" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
+    `;
+    document.body.appendChild(overlay);
+};
+window.openImg = (url) => {
+    const overlay = document.createElement('div');
+    overlay.id = 'imgOverlay';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100dvh;z-index:99999;display:flex;flex-direction:column;background:rgba(0,0,0,0.9);';
+    overlay.innerHTML = `
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 15px;background:var(--surface);border-bottom:2px solid var(--border);flex-shrink:0;">
+            <button onclick="document.getElementById('imgOverlay').remove()" style="border:2px solid var(--border);background:var(--surface);border-radius:8px;width:32px;height:32px;cursor:pointer;font-size:1rem;color:var(--text-1);display:flex;align-items:center;justify-content:center;">✕</button>
+            <a href="${url}" target="_blank" style="font-size:0.8rem;color:var(--link);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">${url}</a>
+        </div>
+        <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:20px;">
+            <img src="${url}" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:8px;">
+        </div>
+    `;
+    overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+    document.body.appendChild(overlay);
+};
 // ─── Feed ─────────────────────────────────────────────────────────────────────
 
 window.renderComments = (postId, comments, parentId = 'root', depth = 0) => {
@@ -656,6 +684,7 @@ const init = () => {
     }
 
     const themeBtn = document.getElementById('themeToggle');
+
     const currentTheme = localStorage.getItem('theme') || 'light';
     document.documentElement.setAttribute('data-theme', currentTheme);
     themeBtn.innerHTML = currentTheme === 'dark' ? '<i class="fa-solid fa-sun"></i> Theme' : '<i class="fa-solid fa-moon"></i> Theme';
@@ -665,14 +694,81 @@ const init = () => {
         localStorage.setItem('theme', newTheme);
         themeBtn.innerHTML = newTheme === 'dark' ? '<i class="fa-solid fa-sun"></i> Theme' : '<i class="fa-solid fa-moon"></i> Theme';
     };
+    // ─── Accent ───────────────────────────────────────────────────────────────────
+    const applyAccent = (accent) => {
+        document.documentElement.setAttribute('data-accent', accent);
+        document.querySelectorAll('.accent-swatch').forEach(s =>
+            s.classList.toggle('active', s.dataset.accent === accent)
+        );
+    };
+
+    const savedAccent = localStorage.getItem('accent') || 'cyan';
+    applyAccent(savedAccent);
+
+    document.getElementById('accentPicker').addEventListener('click', (e) => {
+        const swatch = e.target.closest('.accent-swatch');
+        if (!swatch) return;
+        const accent = swatch.dataset.accent;
+        localStorage.setItem('accent', accent);
+        applyAccent(accent);
+    });
 
     const area = document.getElementById('msgInput');
-    area.oninput = () => {
+    area.oninput = async () => {
         area.style.height = 'auto';
         area.style.height = area.scrollHeight + 'px';
         const btn = document.getElementById('sendBtn');
         if (area.value.trim().length > 0 && currentChatId) btn.classList.add('active');
         else btn.classList.remove('active');
+
+        const val = area.value;
+        const cmd = document.getElementById('cmdSuggestions');
+        cmd.innerHTML = '';
+
+        if (val.startsWith('/')) {
+            const commands = [
+                { cmd: '/translate de', desc: '<br>Translate to German' },
+                { cmd: '/translate en', desc: '<br>Translate to English' },
+            ];
+            const filter = val.toLowerCase();
+            const matches = commands.filter(c => c.cmd.startsWith(filter));
+            if (matches.length) {
+                cmd.style.display = 'block';
+                matches.forEach(c => {
+                    const item = document.createElement('div');
+                    item.className = 'suggest-item';
+                    item.innerHTML = `<b>${c.cmd}</b> <span style="opacity:0.5;font-size:0.8rem">${c.desc}</span>`;
+                    item.onclick = () => { area.value = c.cmd + ' '; cmd.style.display = 'none'; area.focus(); };
+                    cmd.appendChild(item);
+                });
+            } else { cmd.style.display = 'none'; }
+            return;
+        }
+
+        // @ автодополнение — ищем последний @ в тексте
+        const atMatch = val.match(/@([a-zA-Z0-9_]*)$/);
+        if (atMatch) {
+            const query = atMatch[1].toLowerCase();
+            const snap = await get(ref(db, 'users'));
+            const users = Object.keys(snap.val() || {}).filter(u => u.toLowerCase().includes(query) && '@'+u !== currentUser);
+            if (users.length) {
+                cmd.style.display = 'block';
+                users.slice(0, 5).forEach(u => {
+                    const item = document.createElement('div');
+                    item.className = 'suggest-item';
+                    item.innerHTML = `<b>@${u}</b>`;
+                    item.onclick = () => {
+                        area.value = val.replace(/@([a-zA-Z0-9_]*)$/, '@' + u + ' ');
+                        cmd.style.display = 'none';
+                        area.focus();
+                    };
+                    cmd.appendChild(item);
+                });
+            } else { cmd.style.display = 'none'; }
+            return;
+        }
+
+        cmd.style.display = 'none';
     };
     area.onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); } };
 

@@ -1,6 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getDatabase, ref, push, onValue, set, get, serverTimestamp, off } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 import { getMessaging, getToken } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging.js";
+
 const firebaseConfig = {
     apiKey: "AIzaSyACwWS7Q03oipjC4issm3WIy8k_OkSiUiM",
     databaseURL: "https://levnetxyz-default-rtdb.europe-west1.firebasedatabase.app",
@@ -12,7 +13,6 @@ const firebaseConfig = {
     measurementId: "G-XK20LGP6FQ"
 };
 
-// --- Инициализация ---
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const messaging = getMessaging(app);
@@ -24,26 +24,17 @@ let selectedMsgId = null;
 let selectedMsgText = null;
 let isFirstLoad = true;
 
-// --- Уведомления и Токены ---
+// --- Уведомления (Multi-device) ---
 const saveTokenToDb = (token) => {
     if (!currentUser) return;
     const userPath = currentUser.replace('@', '');
-    // Используем хеш от токена как ключ, чтобы не дублировать
-    const tokenKey = btoa(token).substring(0, 20).replace(/\//g, '_');
+    const tokenKey = btoa(token).substring(0, 20).replace(/[/+=]/g, 'x');
     set(ref(db, `users/${userPath}/tokens/${tokenKey}`), token);
 };
 
 getToken(messaging, { vapidKey: 'BCVfZS0S7FdKxMoCSPxRv-026OJjJUdidX1UdFJVtr3xO9nAK1-nx408bKbjChgjyh3U9KOwyjE2gcdFROVclPA' })
-    .then((token) => {
-        if (token) {
-            console.log("Token ok:", token);
-            saveTokenToDb(token);
-        }
-    }).catch(err => console.log('Messaging error:', err));
-
-if (Notification.permission !== "granted") {
-    Notification.requestPermission();
-}
+    .then((token) => { if (token) saveTokenToDb(token); })
+    .catch(err => console.log('Messaging error:', err));
 
 // --- Функции чата ---
 const translateText = async (pair, text) => {
@@ -139,18 +130,27 @@ function openChat(id, targetMsgId = null) {
                     content = content.replace(/(@[a-zA-Z0-9_]+)/g, '<span class="mention">$1</span>');
                 }
 
+                // Добавляем обработчик для меню (Safari любит touchstart)
                 wrapper.oncontextmenu = (e) => showMenu(e, msgKey, m.text, isMe);
+                wrapper.addEventListener('touchstart', (e) => {
+                    let timer;
+                    timer = setTimeout(() => showMenu(e, msgKey, m.text, isMe), 500);
+                    wrapper.addEventListener('touchend', () => clearTimeout(timer));
+                }, {passive: true});
 
-                let authorHtml = (m.user !== lastUser) ? `<div class="msg-name">${isMe ? '' : m.user}</div>` : '';
+                // Показываем имя только в группах и только если это не моё сообщение
+                const isGroup = currentChatId.startsWith('#');
+                let authorHtml = '';
+
+                if (isGroup && !isMe && m.user !== lastUser) {
+                    authorHtml = `<div class="msg-name">${m.user}</div>`;
+                }
                 wrapper.innerHTML = `<div class="message card">${authorHtml}<div class="msg-text">${content}</div><div class="msg-time">${timeStr}</div></div>`;
                 box.appendChild(wrapper);
                 lastUser = m.user;
             });
 
-            // Уведомление о новом сообщении
-            const lastMsg = entries[entries.length - 1][1];
             isFirstLoad = false;
-
             if (targetMsgId) {
                 setTimeout(() => {
                     const el = document.getElementById("msg-" + targetMsgId);
@@ -194,6 +194,13 @@ const sendMsg = async () => {
     let dbId = isGroup ? 'group_' + targetId : [currentUser, currentChatId].sort().join('_').replace(/@/g, '');
 
     push(ref(db, 'messages/' + dbId), { user: currentUser, text: txt, timestamp: serverTimestamp() });
+
+    // Групповая логика: добавляем юзера в члены группы для пушей
+    if (isGroup) {
+        // Записываем себя в участники группы, чтобы сервер знал, что нам тоже надо (или не надо) слать
+        set(ref(db, `groups/${dbId}/members/${currentUser.replace('@','')}`), true);
+    }
+
     set(ref(db, `active_chats/${currentUser.replace('@','')}/${dbId}`), {title: currentChatId});
     if(!isGroup) set(ref(db, `active_chats/${targetId}/${dbId}`), {title: currentUser});
 
@@ -202,7 +209,6 @@ const sendMsg = async () => {
     document.getElementById('sendBtn').classList.remove('active');
 };
 
-// --- Инициализация интерфейса ---
 const init = () => {
     const savedSitePass = localStorage.getItem('siteAuth');
     const savedUser = localStorage.getItem('currentUser');
@@ -227,21 +233,6 @@ const init = () => {
 
     area.oninput = () => {
         const val = area.value;
-        cmdBox.innerHTML = '';
-        if (val.startsWith('/')) {
-            const matches = commands.filter(c => c.startsWith(val));
-            if (matches.length > 0 && val !== matches[0]) {
-                matches.forEach(match => {
-                    const d = document.createElement('div');
-                    d.className = 'suggest-item';
-                    d.innerText = match;
-                    d.onclick = () => { area.value = match; cmdBox.style.display = 'none'; area.focus(); };
-                    cmdBox.appendChild(d);
-                });
-                cmdBox.style.display = 'block';
-            } else cmdBox.style.display = 'none';
-        } else cmdBox.style.display = 'none';
-
         area.style.height = 'auto';
         area.style.height = area.scrollHeight + 'px';
         const btn = document.getElementById('sendBtn');
@@ -249,19 +240,24 @@ const init = () => {
         else btn.classList.remove('active');
     };
 
-    document.getElementById('logoutBtn').onclick = () => { localStorage.clear(); location.reload(); };
-
-    document.getElementById('siteAuthBtn').onclick = () => {
-        if (document.getElementById('sitePassInput').value === "314") {
+    // ФИКС ДЛЯ SAFARI: Кнопки авторизации
+    document.getElementById('siteAuthBtn').addEventListener('click', () => {
+        const val = document.getElementById('sitePassInput').value;
+        if (val === "314") {
             localStorage.setItem('siteAuth', "314");
             document.getElementById('siteAuthOverlay').style.display = 'none';
             document.getElementById('userAuthOverlay').style.display = 'flex';
         } else alert("Wrong password!");
-    };
+    });
 
     document.getElementById('userAuthBtn').onclick = async () => {
         let uName = document.getElementById('loginUser').value.trim().replace('@', '');
         const uPassRaw = document.getElementById('loginPass').value.trim();
+
+        // Блокируем опасные ники
+        if (uName.toLowerCase === 'group') {
+           return alert("This name is reserved");
+        }
         if (uName.length < 2 || !uPassRaw) return alert("Fill in everything!");
         const uPass = await hashPassword(uPassRaw);
         uName = '@' + uName;
@@ -272,34 +268,74 @@ const init = () => {
         proceed(uName);
     };
 
+    document.getElementById('logoutBtn').onclick = () => { localStorage.clear(); location.reload(); };
     document.getElementById('menuToggle').onclick = () => document.getElementById('sidebar').classList.toggle('hidden');
     document.getElementById('sendBtn').onclick = sendMsg;
     area.onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); } };
 
-    // Поиск
-    const sInput = document.getElementById('chatSearch');
-    const sSuggest = document.getElementById('searchSuggestions');
-    sInput.oninput = async () => {
-        const val = sInput.value.trim().toLowerCase();
-        sSuggest.innerHTML = '';
-        if (!val) { sSuggest.style.display = 'none'; return; }
-        sSuggest.style.display = 'block';
+    // ПОИСК (Возвращен)
+    // ОБНОВЛЕННЫЙ ПОИСК: Юзеры, Группы и Текст сообщений
+        const sInput = document.getElementById('chatSearch');
+        const sSuggest = document.getElementById('searchSuggestions');
 
-        if (val.startsWith('@') || val.startsWith('#')) {
-            const isUser = val.startsWith('@');
-            const snap = await get(ref(db, isUser ? 'users' : 'messages'));
-            Object.keys(snap.val() || {}).forEach(key => {
-                const display = key.replace('group_', '');
-                if (display.toLowerCase().includes(val.slice(1))) {
-                    const item = document.createElement('div');
-                    item.className = 'chat-item';
-                    item.innerText = isUser ? '@' + key : '#' + display;
-                    item.onclick = () => { openChat(item.innerText); sInput.value = ''; sSuggest.style.display = 'none'; };
-                    sSuggest.appendChild(item);
-                }
-            });
-        }
-    };
+        sInput.oninput = async () => {
+            const val = sInput.value.trim().toLowerCase();
+            sSuggest.innerHTML = '';
+            if (!val) { sSuggest.style.display = 'none'; return; }
+            sSuggest.style.display = 'block';
+
+            if (val.startsWith('@') || val.startsWith('#')) {
+                // Поиск чатов/юзеров (как и было)
+                const isUser = val.startsWith('@');
+                const snap = await get(ref(db, isUser ? 'users' : 'messages'));
+                Object.keys(snap.val() || {}).forEach(key => {
+                    const display = key.replace('group_', '');
+                    if (display.toLowerCase().includes(val.slice(1))) {
+                        const item = document.createElement('div');
+                        item.className = 'chat-item';
+                        item.innerText = isUser ? '@' + key : '#' + display;
+                        item.onclick = () => { openChat(item.innerText); sInput.value = ''; sSuggest.style.display = 'none'; };
+                        sSuggest.appendChild(item);
+                    }
+                });
+            } else {
+                // ПОИСК ПО ТЕКСТУ (только в твоих чатах)
+                const myChatsSnap = await get(ref(db, `active_chats/${currentUser.replace('@','')}`));
+                const myChats = myChatsSnap.val() || {};
+                const myChatIds = Object.keys(myChats); // Это массив ID типа "user1_user2" или "group_General"
+
+                const msgsSnap = await get(ref(db, 'messages'));
+                const allMessages = msgsSnap.val() || {};
+
+                myChatIds.forEach(chatDbId => {
+                    const msgs = allMessages[chatDbId];
+                    if (msgs) {
+                        Object.entries(msgs).forEach(([msgId, m]) => {
+                            if (m.text && m.text.toLowerCase().includes(val)) {
+                                const item = document.createElement('div');
+                                item.className = 'chat-item search-result';
+
+                                // Название чата из active_chats (там лежит title)
+                                let chatTitle = myChats[chatDbId].title;
+
+                                item.innerHTML = `
+                                    <div style="font-size:0.8em; color:var(--primary);">в ${chatTitle}</div>
+                                    <div style="font-weight:bold;">${m.user}:</div>
+                                    <div style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${m.text}</div>
+                                `;
+
+                                item.onclick = () => {
+                                    openChat(chatTitle, msgId);
+                                    sInput.value = '';
+                                    sSuggest.style.display = 'none';
+                                };
+                                sSuggest.appendChild(item);
+                            }
+                        });
+                    }
+                });
+            }
+        };
 
     document.getElementById('createGroupBtn').onclick = () => {
         let g = prompt("Group name:").trim().replace(/#/, '');
@@ -328,6 +364,7 @@ const uploadImg = async (file) => {
     return data.data.url;
 };
 
+// МЕНЮ (С отступами от краев)
 const showMenu = (e, msgId, text, isMe) => {
     if (e.cancelable) e.preventDefault();
     selectedMsgId = msgId;
@@ -336,8 +373,16 @@ const showMenu = (e, msgId, text, isMe) => {
     document.getElementById('editBtn').style.display = isMe ? 'flex' : 'none';
     document.getElementById('delBtn').style.display = isMe ? 'flex' : 'none';
     menu.style.display = 'flex';
+
     let x = e.clientX || (e.touches ? e.touches[0].clientX : 0);
     let y = e.clientY || (e.touches ? e.touches[0].clientY : 0);
+
+    // Ограничиваем меню, чтобы не уходило за край
+    const menuWidth = 150;
+    const menuHeight = 120;
+    if (x + menuWidth > window.innerWidth) x = window.innerWidth - menuWidth - 10;
+    if (y + menuHeight > window.innerHeight) y = window.innerHeight - menuHeight - 10;
+
     menu.style.left = `${x}px`;
     menu.style.top = `${y}px`;
 };
@@ -374,14 +419,30 @@ const showCustomModal = (title, showInput = false, defaultValue = "") => {
     });
 };
 
+// Закрытие меню по клику вне
+document.addEventListener('click', () => { document.getElementById('msgMenu').style.display = 'none'; });
+
 init();
-if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/firebase-messaging-sw.js')
-        .then((registration) => {
-            console.log('SW registered:', registration.scope);
-            // Только после регистрации воркера пробуем получить токен
-        })
-        .catch((err) => {
-            console.log('SW registration failed:', err);
-        });
-}
+// Ждем полной загрузки окна, чтобы Safari не тупил
+window.addEventListener('load', () => {
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/firebase-messaging-sw.js', { scope: '/' })
+            .then((reg) => {
+                console.log('SW зарегистрирован:', reg.scope);
+                // Если мы уже вошли, пробуем обновить токен
+                if (currentUser) {
+                    getToken(messaging, {
+                        vapidKey: 'BCVfZS0S7FdKxMoCSPxRv-026OJjJUdidX1UdFJVtr3xO9nAK1-nx408bKbjChgjyh3U9KOwyjE2gcdFROVclPA',
+                        serviceWorkerRegistration: reg
+                    })
+                    .then((token) => { if (token) saveTokenToDb(token); })
+                    .catch(err => console.log('Ошибка токена в SW:', err));
+                }
+            })
+            .catch((err) => {
+                console.log('SW ошибка регистрации:', err);
+            });
+    } else {
+        console.warn('Service Worker не поддерживается этим браузером (Safari в обычном режиме?)');
+    }
+});

@@ -100,7 +100,7 @@ button.card:active, .chat-item:active {
 .Header .card:hover i { color: var(--link) !important; }
 
 #chatTitle { color: var(--link); }
-#menuToggle, #themeToggle, #logoutBtn, #settingsBtn { cursor: pointer; border: 0; box-shadow: none; }
+#menuToggle, #themeToggle, #logoutBtn, #settingsBtn, #pushNotifyBtn { cursor: pointer; border: 0; box-shadow: none; }
 #menuToggle:active, #themeToggle:active, #logoutBtn:active { transform: none; }
 
 /* ─── 6. SIDEBAR ─────────────────────────────────────────────────────────────── */

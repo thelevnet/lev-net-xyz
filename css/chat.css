@@ -542,6 +542,7 @@ input, textarea, button, select {
     #settingsPanel.hidden { transform: translateX(100%); margin-right: 0; }
 }
 
+
 /* ─── 18. ACCENT THEMES ──────────────────────────────────────────────────────── */
 :root, [data-theme="light"] { --link: #1cb1c5; --secondary: #A8C8D6; }
 

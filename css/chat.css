@@ -536,9 +536,9 @@ input, textarea, button, select {
 
 #settingsPanel.hidden { margin-right: calc(var(--sidebar-width) * -1); }
 @media (max-width: 600px) {
-    #sidebar { position: fixed; left: 0; top: 0; z-index: 50; width: 100%; height: 100dvh; }
+    #sidebar { position: fixed; left: 0; top: 0; z-index: 100; width: 100%; height: 100dvh; }
     #sidebar.hidden { transform: translateX(-100%); margin-left: 0; }
-    #settingsPanel { position: fixed; right: 0; top: 0; z-index: 50; width: 100%; height: 100dvh; }
+    #settingsPanel { position: fixed; right: 0; top: 0; z-index: 100; width: 100%; height: 100dvh; }
     #settingsPanel.hidden { transform: translateX(100%); margin-right: 0; }
 }
 

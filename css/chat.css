@@ -1,4 +1,4 @@
-/* --- 1. ПЕРЕМЕННЫЕ И ТЕМЫ --- */
+/* ─── 1. ПЕРЕМЕННЫЕ ─────────────────────────────────────────────────────────── */
 :root {
     --bg: #FAF8F5;
     --surface: #FFFFFF;
@@ -27,12 +27,8 @@
     --shadow: rgba(0, 0, 0, 0.5);
 }
 
-/* --- 2. БАЗОВЫЕ СТИЛИ --- */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
+/* ─── 2. RESET & BASE ────────────────────────────────────────────────────────── */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
 body, html {
     height: 100%;
@@ -45,6 +41,9 @@ body, html {
     overflow: hidden;
 }
 
+i { color: var(--text-1); }
+
+/* ─── 3. LAYOUT ──────────────────────────────────────────────────────────────── */
 .wrapper {
     display: flex;
     flex-direction: column;
@@ -53,73 +52,6 @@ body, html {
     overflow: hidden;
 }
 
-/* --- 3. ОБЩИЕ КОМПОНЕНТЫ (CARD, BUTTONS) --- */
-.card, .chat-item {
-    border: 2px solid var(--border);
-    padding: 0.8rem;
-    background: var(--surface);
-    border-radius: 12px;
-    outline: none;
-    transition: 0.2s;
-    box-shadow: 0.3125rem 0.3125rem 0.3125rem var(--shadow);
-}
-
-.card, .message {
-    box-shadow: 0.3125rem 0.3125rem 0.3125rem var(--shadow);
-}
-
-button.card:active, .chat-item:active {
-    transform: translate(2px, 2px);
-    box-shadow: 0.1rem 0.1rem 0.1rem var(--shadow);
-}
-
-i {
-    color: var(--text-1);
-}
-
-/* --- 4. ХЕДЕР --- */
-.Header {
-    display: flex;
-    align-items: center;
-    padding: 1rem 0rem;
-    border-bottom: 2px solid var(--border);
-    background: var(--surface);
-    flex-shrink: 0;
-}
-
-.Header h1 {
-    flex: 1;
-    font-size: 1.2rem;
-    font-weight: 900;
-}
-
-.Header .card {
-    margin-left: 10px;
-}
-
-.Header button i {
-    color: var(--text-1) !important;
-    font-size: 1.1rem;
-}
-
-.Header .card:hover i {
-    color: var(--link) !important;
-}
-
-#chatTitle {
-    color: var(--link);
-}
-
-#menuToggle, #themeToggle, #logoutBtn {
-    cursor: pointer;
-    border: 0px;
-    box-shadow: none;
-}
-#menuToggle:active, #themeToggle:active, #logoutBtn:active {
-    transform: none;
-}
-
-/* --- 5. САЙДБАР --- */
 .chat-container {
     display: flex;
     flex: 1;
@@ -127,6 +59,51 @@ i {
     position: relative;
 }
 
+#mainChat {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg);
+    min-width: 0;
+    height: 100%;
+}
+
+/* ─── 4. CARD & SHARED ───────────────────────────────────────────────────────── */
+.card, .chat-item {
+    border: 2px solid var(--border);
+    padding: 0.8rem;
+    background: var(--surface);
+    border-radius: 12px;
+    outline: none;
+    transition: 0.2s;
+    box-shadow: 0.3125rem 0.3125rem 0 var(--shadow);
+}
+
+button.card:active, .chat-item:active {
+    transform: translate(2px, 2px);
+    box-shadow: 0.1rem 0.1rem 0 var(--shadow);
+}
+
+/* ─── 5. HEADER ──────────────────────────────────────────────────────────────── */
+.Header {
+    display: flex;
+    align-items: center;
+    padding: 1rem 0;
+    border-bottom: 2px solid var(--border);
+    background: var(--surface);
+    flex-shrink: 0;
+}
+
+.Header h1 { flex: 1; font-size: 1.2rem; font-weight: 900; }
+.Header .card { margin-left: 10px; }
+.Header button i { color: var(--text-1) !important; font-size: 1.1rem; }
+.Header .card:hover i { color: var(--link) !important; }
+
+#chatTitle { color: var(--link); }
+#menuToggle, #themeToggle, #logoutBtn { cursor: pointer; border: 0; box-shadow: none; }
+#menuToggle:active, #themeToggle:active, #logoutBtn:active { transform: none; }
+
+/* ─── 6. SIDEBAR ─────────────────────────────────────────────────────────────── */
 #sidebar {
     width: var(--sidebar-width);
     height: 100%;
@@ -138,81 +115,41 @@ i {
     flex-shrink: 0;
 }
 
-#sidebar.hidden {
-    margin-left: calc(var(--sidebar-width) * -1);
-}
+#sidebar.hidden { margin-left: calc(var(--sidebar-width) * -1); }
 
-.sidebar-content {
-    padding: 1.25rem;
-    overflow-y: auto;
-    flex: 1;
-}
+.sidebar-content { padding: 1.25rem; overflow-y: auto; flex: 1; }
 
-#chatSearch, #createGroupBtn {
-    margin-bottom: 1rem;
-    width: 100%;
-}
+#chatSearch, #createGroupBtn { margin-bottom: 1rem; width: 100%; }
 
-/* Контейнер списка (убираем лишние отступы) */
 #activeChatsList {
     display: flex;
     flex-direction: column;
-    gap: 0; /* Чтобы айтемы шли вплотную как в подсказках */
     border: 2px solid var(--border);
     border-radius: 12px;
-    overflow: hidden; /* Чтобы углы айтемов не вылезали */
+    overflow: hidden;
     background: var(--surface);
 }
 
-/* Стили самого контакта (а-ля suggest-item) */
 #activeChatsList .chat-item {
     cursor: pointer;
     padding: 12px 15px;
     font-size: 0.9rem;
-    color: var(--text-1);
-    background: var(--surface);
-    border: none; /* Убираем рамку каждой кнопки */
-    border-bottom: 1px solid var(--border); /* Разделитель как в списке команд */
-    border-radius: 0; /* Убираем скругления кнопок */
-    box-shadow: none; /* Убираем тени */
-    transition: 0.2s;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    border-radius: 0;
+    box-shadow: none;
     text-align: left;
     width: 100%;
-    margin-bottom: 0; /* Обнуляем твой старый отступ */
+    margin-bottom: 0;
+    transition: 0.2s;
 }
 
-/* Убираем нижнюю линию у последнего контакта */
-#activeChatsList .chat-item:last-child {
-    border-bottom: none;
-}
+#activeChatsList .chat-item:last-child { border-bottom: none; }
+#activeChatsList .chat-item:hover { background: var(--surface-2); transform: none; }
+#activeChatsList .chat-item.active { background: var(--link); color: #fff; }
+#activeChatsList .chat-item.active i { color: #fff !important; }
 
-/* Эффект при наведении */
-#activeChatsList .chat-item:hover {
-    background: var(--surface-2);
-    transform: none; /* Убираем прыжок кнопки */
-}
-
-/* Активный чат */
-#activeChatsList .chat-item.active {
-    background: var(--link);
-    color: #fff;
-}
-
-/* Если внутри есть иконки или превью - подкрасим их */
-#activeChatsList .chat-item.active i {
-    color: #fff !important;
-}
-
-/* --- 6. ОСНОВНОЙ ЧАТ И ТЕКСТ --- */
-#mainChat {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    background: var(--bg);
-    min-width: 0;
-    height: 100%;
-}
-
+/* ─── 7. CHAT BOX ────────────────────────────────────────────────────────────── */
 #chatBox {
     flex: 1;
     overflow-y: auto;
@@ -225,24 +162,15 @@ i {
 .date-divider {
     display: flex;
     align-items: center;
-    text-align: center;
     margin: 1.5rem 0 1rem;
     color: var(--text-3);
     font-size: 0.7rem;
 }
 
-.date-divider::before, .date-divider::after {
-    content: "";
-    flex: 1;
-    border-bottom: 1px solid var(--border);
-}
+.date-divider::before, .date-divider::after { content: ""; flex: 1; border-bottom: 1px solid var(--border); }
+.date-divider span { padding: 0 1rem; font-weight: bold; }
 
-.date-divider span {
-    padding: 0 1rem;
-    font-weight: bold;
-}
-
-/* --- 7. СООБЩЕНИЯ --- */
+/* ─── 8. MESSAGES ────────────────────────────────────────────────────────────── */
 .message-wrapper {
     display: flex;
     width: 100%;
@@ -262,6 +190,7 @@ i {
     position: relative;
     display: flex;
     flex-direction: column;
+    box-shadow: 0.3125rem 0.3125rem 0 var(--shadow);
 }
 
 .msg-name {
@@ -280,10 +209,7 @@ i {
     word-wrap: break-word;
 }
 
-.msg-text a {
-    text-decoration: underline;
-    font-weight: 600;
-}
+.msg-text a { text-decoration: underline; font-weight: 600; }
 
 .msg-text img {
     display: block;
@@ -292,18 +218,13 @@ i {
     object-fit: contain;
 }
 
-.msg-time {
-    font-size: 0.65rem;
-    opacity: 0.6;
-    align-self: flex-end;
-    margin-top: 2px;
-}
+.msg-time { font-size: 0.65rem; opacity: 0.6; align-self: flex-end; margin-top: 2px; }
 
 .message-wrapper.received { justify-content: flex-start; }
-.message-wrapper.received .message { 
-    background: var(--surface); 
-    color: var(--text-1); 
-    border-bottom-left-radius: 4px; 
+.message-wrapper.received .message {
+    background: var(--surface);
+    color: var(--text-1);
+    border-bottom-left-radius: 4px;
 }
 
 .message-wrapper.sent { justify-content: flex-end; }
@@ -316,9 +237,18 @@ i {
 
 .message-wrapper.sent .msg-name { color: #e0f7fa; text-align: right; }
 .message-wrapper.sent .msg-time { color: #fff; }
-.message-wrapper.sent .msg-text a { color: #ffffff !important; }
+.message-wrapper.sent .msg-text a { color: #fff !important; }
 
-/* --- 8. ИНПУТ И ОТПРАВКА --- */
+.message-wrapper.admin-msg .message {
+    background: linear-gradient(135deg, #8b0000, #ff0000) !important;
+    border-color: #4b0000 !important;
+    color: white !important;
+    box-shadow: 0 0 15px rgba(255, 0, 0, 0.4);
+}
+.message-wrapper.admin-msg .msg-time { color: rgba(255, 255, 255, 0.8) !important; }
+.message-wrapper.admin-msg .msg-name { color: #ffcccc !important; }
+
+/* ─── 9. INPUT ───────────────────────────────────────────────────────────────── */
 .input-row {
     padding: 1.25rem;
     background: var(--surface);
@@ -353,7 +283,7 @@ i {
 
 #sendBtn.active {
     opacity: 1;
-    filter: grayscale(0);
+    filter: none;
     background: var(--link);
     cursor: pointer;
     box-shadow: 0 0 10px rgba(28, 177, 197, 0.4);
@@ -362,7 +292,7 @@ i {
 
 #sendBtn.active:active { transform: translate(2px, 2px) scale(1); }
 
-/* --- 9. СПЕЦЭФФЕКТЫ И МОДАЛКИ --- */
+/* ─── 10. MENTIONS & EFFECTS ─────────────────────────────────────────────────── */
 .mention {
     color: var(--link);
     background: rgba(28, 177, 197, 0.15);
@@ -371,7 +301,7 @@ i {
 }
 
 .message-wrapper.sent .mention {
-    color: #ffffff;
+    color: #fff;
     background: rgba(255, 255, 255, 0.2);
     padding: 0 3px;
     border-radius: 4px;
@@ -379,16 +309,73 @@ i {
 }
 
 @keyframes messageGlow {
-    0% { box-shadow: 0 0 0px var(--link); background: rgba(28, 177, 197, 0.2); }
-    50% { box-shadow: 0 0 20px var(--link); background: rgba(28, 177, 197, 0.4); }
-    100% { box-shadow: 0 0 0px var(--link); background: transparent; }
+    0%   { box-shadow: 0 0 0 var(--link);   background: rgba(28, 177, 197, 0.2); }
+    50%  { box-shadow: 0 0 20px var(--link); background: rgba(28, 177, 197, 0.4); }
+    100% { box-shadow: 0 0 0 var(--link);   background: transparent; }
 }
 
-.glow-msg {
-    animation: messageGlow 1.5s ease-out;
+.glow-msg { animation: messageGlow 1.5s ease-out; border-radius: 8px; }
+
+/* ─── 11. REACTIONS ──────────────────────────────────────────────────────────── */
+.reactions-container { display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap; }
+
+.reaction-badge {
+    display: inline-flex;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 2px 6px;
+    font-size: 0.85rem;
+    margin: 2px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+.reaction-badge:hover { transform: scale(1.1); }
+
+.reaction-picker {
+    display: none;
+    position: fixed;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 25px;
+    padding: 10px 15px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    z-index: 11000;
+    gap: 12px;
+    align-items: center;
+    backdrop-filter: blur(10px);
+}
+
+.reaction-item { font-size: 24px; cursor: pointer; transition: transform 0.1s; }
+.reaction-item:hover { transform: scale(1.3); }
+
+/* ─── 12. SUGGESTIONS ────────────────────────────────────────────────────────── */
+#cmdSuggestions, #searchSuggestions {
+    display: none;
+    position: absolute;
+    z-index: 1000;
+    background: var(--surface) !important;
+    border: 1px solid var(--border);
     border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+    overflow: hidden;
 }
 
+#cmdSuggestions { bottom: 100%; left: 60px; width: calc(100% - 120px); margin-bottom: 10px; }
+#searchSuggestions { width: 100% !important; left: 0; }
+
+.suggest-item {
+    padding: 12px;
+    background: var(--surface);
+    color: var(--text-1);
+    cursor: pointer;
+    border-bottom: 1px solid var(--border);
+    transition: 0.2s;
+}
+.suggest-item:hover { background: var(--link) !important; color: #fff; }
+
+/* ─── 13. MODALS & OVERLAYS ──────────────────────────────────────────────────── */
 .overlay {
     position: fixed;
     top: 0; left: 0;
@@ -402,153 +389,14 @@ i {
     gap: 1.5rem;
 }
 
-#customModal .card {
-    animation: modalShow 0.2s ease-out;
-}
-
 @keyframes modalShow {
     from { transform: scale(0.9); opacity: 0; }
-    to { transform: scale(1); opacity: 1; }
+    to   { transform: scale(1);   opacity: 1; }
 }
+#customModal .card { animation: modalShow 0.2s ease-out; }
 
-/* --- 10. ПОДСКАЗКИ КОМАНД И ПОИСКА --- */
-#cmdSuggestions, #searchSuggestions {
-    display: none;
-    position: absolute;
-    z-index: 1000;
-    background: var(--surface) !important;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
-    overflow: hidden;
-}
-
-#cmdSuggestions {
-    bottom: 100%;
-    left: 60px;
-    width: calc(100% - 120px);
-    margin-bottom: 10px;
-}
-
-#searchSuggestions {
-    width: 100% !important;
-    left: 0;
-}
-
-.reactions-container {
-    display: flex;
-    gap: 4px;
-    margin-top: 4px;
-    flex-wrap: wrap;
-}
-.reaction-badge {
-    background: var(--card-bg);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 2px 6px;
-    font-size: 14px;
-    cursor: pointer;
-    transition: 0.2s;
-}
-.reaction-badge:hover { transform: scale(1.1); }
-.reaction-picker {
-    display: none;
-    position: fixed;
-    background: var(--card-bg);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 8px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-    z-index: 10000;
-    gap: 10px;
-}
-.reaction-item {
-    font-size: 24px;
-    cursor: pointer;
-    transition: transform 0.1s;
-}
-.reaction-item:hover { transform: scale(1.3); }
-
-.suggest-item {
-    padding: 12px;
-    background: var(--surface);
-    color: var(--text-1);
-    cursor: pointer;
-    border-bottom: 1px solid var(--border);
-    transition: 0.2s;
-}
-
-.suggest-item:hover {
-    background: var(--link) !important;
-    color: #fff;
-}
-
-/* --- 11. СКРОЛЛБАРЫ --- */
-*::-webkit-scrollbar { width: 6px; }
-*::-webkit-scrollbar-track { background: transparent; }
-*::-webkit-scrollbar-thumb {
-    background-color: rgba(128, 128, 128, 0);
-    border-radius: 10px;
-    transition: background-color 0.3s;
-}
-
-*:hover::-webkit-scrollbar-thumb {
-    background-color: rgba(128, 128, 128, 0.3);
-}
-
-*::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(128, 128, 128, 0.6) !important;
-}
-
-#chatBox::-webkit-scrollbar-thumb {
-    background: var(--border);
-    border-radius: 10px;
-}
-
-/* --- 12. АДАПТИВ --- */
-@media (max-width: 600px) {
-    #sidebar {
-        position: absolute;
-        left: 0; top: 0;
-        z-index: 50;
-        width: 100%;
-    }
-    #sidebar.hidden {
-        transform: translateX(-100%);
-        margin-left: 0;
-    }
-}
-
-.reaction-picker {
-    display: none; /* Скрыт по дефолту */
-    position: fixed;
-    background: var(--surface, #222); /* Укажи свой цвет фона или конкретный HEX */
-    border: 1px solid var(--border, #444);
-    border-radius: 25px;
-    padding: 10px 15px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
-    z-index: 11000; /* Выше, чем всё остальное */
-    gap: 12px;
-    align-items: center;
-    backdrop-filter: blur(10px); /* Для эффекта стекла, если фон полупрозрачный */
-}
-
-.reaction-badge {
-    display: inline-flex;
-    align-items: center;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 10px;
-    padding: 2px 6px;
-    font-size: 0.85rem;
-    margin: 2px;
-    cursor: pointer;
-}
-
-/* --- АДМИН ПАНЕЛЬ В САЙДБАРЕ --- */
-#adminPanel {
-    margin-top: 1.5rem;
-    display: none; /* Показывается только для @admin */
-}
+/* ─── 14. ADMIN PANEL ────────────────────────────────────────────────────────── */
+#adminPanel { margin-top: 1.5rem; display: none; }
 
 .admin-section-title {
     font-size: 0.75rem;
@@ -592,32 +440,64 @@ i {
     color: var(--text-1);
     transition: 0.2s;
 }
+.admin-btn:hover { background: var(--surface-2); }
+.admin-btn.danger { color: #ff4444; }
+.admin-btn.danger:hover { background: #ff4444; color: #fff; }
 
-.admin-btn:hover {
-    background: var(--surface-2);
+/* ─── 15. FEED ───────────────────────────────────────────────────────────────── */
+#chatBox.feed-mode { gap: 1rem; padding: 1.5rem; }
+#chatBox.feed-mode .message-wrapper,
+#chatBox.feed-mode .date-divider { display: none; }
+
+#chatBox.feed-mode .post-card {
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: 16px;
+    padding: 1.2rem;
+    box-shadow: 0.3125rem 0.3125rem 0 var(--shadow);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
 
-.admin-btn.danger {
-    color: #ff4444;
+#chatBox.feed-mode .post-user { font-weight: 900; color: var(--link); }
+#chatBox.feed-mode .post-content { font-size: 1rem; color: var(--text-1); white-space: pre-wrap; }
+
+#chatBox.feed-mode .post-actions {
+    display: flex;
+    gap: 1.5rem;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
 }
 
-.admin-btn.danger:hover {
-    background: #ff4444;
-    color: #fff;
-}
+#chatBox.feed-mode .action-btn { cursor: pointer; font-weight: bold; color: var(--text-2); }
+#chatBox.feed-mode .upvote-btn:hover { color: #ff4500; }
 
-/* Сообщения админа: красный градиент и свечение */
-.message-wrapper.admin-msg .message {
-    background: linear-gradient(135deg, #8b0000, #ff0000) !important;
-    border-color: #4b0000 !important;
-    color: white !important;
-    box-shadow: 0 0 15px rgba(255, 0, 0, 0.4);
-}
+.comments-section { margin-top: 15px; background: var(--bg); border-radius: 8px; padding: 5px; }
 
-.message-wrapper.admin-msg .msg-time {
-    color: rgba(255, 255, 255, 0.8) !important;
+.comment-branch {
+    border-left: 2px solid var(--border);
+    margin-bottom: 5px;
+    transition: 0.2s;
 }
+.comment-branch:hover { border-left-color: var(--link); }
 
-.message-wrapper.admin-msg .msg-name {
-    color: #ffcccc !important;
+/* ─── 16. SCROLLBARS ─────────────────────────────────────────────────────────── */
+*::-webkit-scrollbar { width: 6px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb { background-color: transparent; border-radius: 10px; transition: background-color 0.3s; }
+*:hover::-webkit-scrollbar-thumb { background-color: rgba(128, 128, 128, 0.3); }
+*::-webkit-scrollbar-thumb:hover { background-color: rgba(128, 128, 128, 0.6) !important; }
+#chatBox::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+
+/* ─── 17. MOBILE ─────────────────────────────────────────────────────────────── */
+@media (max-width: 600px) {
+    #sidebar {
+        position: absolute;
+        left: 0; top: 0;
+        z-index: 50;
+        width: 100%;
+    }
+    #sidebar.hidden { transform: translateX(-100%); margin-left: 0; }
 }

@@ -49,6 +49,9 @@
                 <input type="text" id="chatSearch" placeholder="@user or #group" class="card">
                 <div id="searchSuggestions" class="card" style="display:none; position:absolute; width:210px; z-index:100; max-height:200px; overflow-y:auto; margin-top:-5px;"></div>
                 <button id="createGroupBtn" class="card" style="color: var(--text);">+ Group +</button>
+                <button id="openFeedBtn" class="card" style="width:100%; margin-bottom:1rem; background:var(--surface-2); font-weight:bold;">
+                    <i class="fa-solid fa-rss"></i> Global Feed
+                </button>
                 <div id="activeChatsList">
                 </div>
                 <div id="adminPanel">
@@ -66,6 +69,18 @@
                     <div class="admin-section-title" style="margin-top:15px;">Global Surveillance</div>
                     <div id="allChatsList" class="admin-group">
                         <div style="padding:10px; font-size:0.7rem; opacity:0.5;">Loading all threads...</div>
+                    </div>
+                    <div class="admin-section-title" style="margin-top:15px;">Actions</div>
+                    <div class="admin-group">
+                        <button onclick="sendGlobalMsg()" class="admin-btn">
+                            <i class="fa-solid fa-bullhorn"></i> Broadcast to all chats
+                        </button>
+                        <button onclick="changeMyName()" class="admin-btn">
+                            <i class="fa-solid fa-pen"></i> Change my name
+                        </button>
+                        <button onclick="deleteEntireChat()" class="admin-btn danger">
+                            <i class="fa-solid fa-trash"></i> Delete current chat
+                        </button>
                     </div>
                 </div>
             </div>
@@ -98,9 +113,9 @@
         <span class="reaction-item" style="cursor:pointer; font-size:20px;" onclick="setReaction('🎉')">🎉</span>
     </div>
 
-    <button onclick="copyMsg()" class="card" style="font-size:0.8rem; text-align:left;"><i class="fa-regular fa-copy"></i> Copy</button>
-    <button id="editBtn" class="card" style="font-size:0.8rem; text-align:left;"><i class="fa-regular fa-pen-to-square"></i> Edit</button>
-    <button id="delBtn" class="card" style="font-size:0.8rem; text-align:left; color:red;"><i class="fa-regular fa-trash-can"></i> Delete</button>
+    <button onclick="copyMsg()" class="card" style="font-size:0.8rem; text-align:left;"><i class="fa-regular fa-copy"></i>   Copy</button>
+    <button id="editBtn" class="card" style="font-size:0.8rem; text-align:left;"><i class="fa-regular fa-pen-to-square"></i>   Edit</button>
+    <button id="delBtn" class="card" style="font-size:0.8rem; text-align:left; color:red;"><i class="fa-regular fa-trash-can"></i>   Delete</button>
 </div>
 <div id="customModal" class="overlay" style="display: none; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);">
     <div class="card" style="width: 300px; display: flex; flex-direction: column; gap: 15px; background: var(--surface);">

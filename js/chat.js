@@ -502,10 +502,6 @@ function openChat(id, targetMsgId = null, forceDbId = null) {
                     <div class="tg-wave">
                         ${Array.from({length: 30}, (_,i) => `<div class="tg-bar" style="height:${8 + Math.abs(Math.sin(i * 0.8) * 18) | 0}px"></div>`).join('')}
                     </div>
-                    <div class="tg-voice-times">
-                        <span class="tg-cur">0:00</span>
-                        <span class="tg-dur">–:––</span>
-                    </div>
                 </div>`;
             } else {
                 content = content

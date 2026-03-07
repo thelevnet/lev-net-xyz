@@ -30,11 +30,8 @@
 <div class="wrapper" id="chatApp" style="display: none;">
     <div class="Header">
         <button id="menuToggle" class="card"><i class="fa-solid fa-bars"></i></button>
-        <h1>Chat<br><span id="chatTitle">chat</span></h1>
-        <button id="themeToggle" class="card">
-            <i class="fa-solid fa-moon"></i>
-        </button>
-        <button id="logoutBtn" class="card"><i class="fa-solid fa-right-from-bracket"></i></button>
+        <h1>Chat<br><span id="chatTitle"></span></h1>
+        <button id="settingsBtn" class="card"><i class="fa-solid fa-gear"></i></button>
     </div>
 
     <div class="chat-container">
@@ -110,6 +107,26 @@
                 <textarea id="msgInput" placeholder="Message..." class="card" rows="1" style="resize:none; transition: height 0.2s;"></textarea>
 
                 <button id="sendBtn" class="card"><i class="fa-solid fa-paper-plane"></i></button>
+            </div>
+        </div>
+        <div id="settingsPanel" class="hidden">
+            <div class="sidebar-content">
+                <div class="admin-group" style="align-items:center; padding:15px; gap:10px;">
+                    <img id="myAvatar" src="" style="width:64px; height:64px; border-radius:50%; object-fit:cover; display:none; border:2px solid var(--border);">
+                    <div id="myAvatarPlaceholder" style="width:64px; height:64px; border-radius:50%; background:var(--secondary); display:flex; align-items:center; justify-content:center; font-size:1.5rem; font-weight:900; color:#fff;"></div>
+                    <div style="font-size:0.85rem; font-weight:bold;" id="myUsername"></div>
+                </div>
+                <div class="admin-group">
+                    <button onclick="changeAvatar()" class="admin-btn">
+                        <i class="fa-solid fa-camera"></i> Change Avatar
+                    </button>
+                    <button id="themeToggle" class="admin-btn">
+                        <i class="fa-solid fa-moon"></i> Theme
+                    </button>
+                    <button id="logoutBtn" class="admin-btn danger">
+                        <i class="fa-solid fa-right-from-bracket"></i> Logout
+                    </button>
+                </div>
             </div>
         </div>
     </div>

@@ -100,7 +100,7 @@ button.card:active, .chat-item:active {
 .Header .card:hover i { color: var(--link) !important; }
 
 #chatTitle { color: var(--link); }
-#menuToggle, #themeToggle, #logoutBtn { cursor: pointer; border: 0; box-shadow: none; }
+#menuToggle, #themeToggle, #logoutBtn, #settingsBtn { cursor: pointer; border: 0; box-shadow: none; }
 #menuToggle:active, #themeToggle:active, #logoutBtn:active { transform: none; }
 
 /* ─── 6. SIDEBAR ─────────────────────────────────────────────────────────────── */
@@ -515,4 +515,32 @@ input, textarea, button, select {
 
 .overlay * {
     color: var(--text-1);
+}
+
+#settingsPanel {
+    width: var(--sidebar-width);
+    height: 100%;
+    border-left: 2px solid var(--border);
+    background: var(--surface);
+    transition: 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+}
+
+#settingsPanel.hidden {
+    margin-right: calc(var(--sidebar-width) * -1);
+}
+
+@media (max-width: 600px) {
+    #settingsPanel {
+        position: absolute;
+        right: 0; top: 0;
+        z-index: 50;
+        width: 100%;
+    }
+    #settingsPanel.hidden {
+        transform: translateX(100%);
+        margin-right: 0;
+    }
 }

@@ -22,16 +22,49 @@ const messaging = getMessaging(app);
 // ─── State ────────────────────────────────────────────────────────────────────
 
 let currentUser = null;
+let realUser = null;
 let currentChatId = null;
 let currentChatRef = null;
 let selectedMsgId = null;
 let selectedMsgText = null;
 let isFirstLoad = true;
 let reactionTargetMsgId = null;
-let activeChatDbId = null; // ← переименовано, без конфликта
-let realUser = null; // настоящий логин, не меняется
-
+let activeChatDbId = null;
+const avatarCache = {};
 window.feedSortMode = 'new';
+const SYSTEM_CHAT_ID = 'system_broadcast';
+const VAPID = 'BCVfZS0S7FdKxMoCSPxRv-026OJjJUdidX1UdFJVtr3xO9nAK1-nx408bKbjChgjyh3U9KOwyjE2gcdFROVclPA';
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const buildChatDbId = (chatId) =>
+    chatId.startsWith('#')
+        ? 'group_' + chatId.replace('#', '')
+        : [currentUser, chatId].sort().join('_').replace(/@/g, '');
+
+const getActiveChatDbId = () => activeChatDbId;
+
+const getAvatar = async (username) => {
+    const key = username.replace('@', '');
+    if (avatarCache[key] !== undefined) return avatarCache[key];
+    const snap = await get(ref(db, `users/${key}/avatar`));
+    avatarCache[key] = snap.val() || null;
+    return avatarCache[key];
+};
+
+const makeAvatarEl = (url, username, size = 30) => {
+    const letter = (username[1] || username[0] || '?').toUpperCase();
+    if (url) {
+        const img = document.createElement('img');
+        img.src = url;
+        img.style.cssText = `width:${size}px;height:${size}px;border-radius:50%;object-fit:cover;flex-shrink:0;`;
+        return img;
+    }
+    const div = document.createElement('div');
+    div.style.cssText = `width:${size}px;height:${size}px;border-radius:50%;background:var(--secondary);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:${size * 0.35}px;font-weight:900;color:#fff;`;
+    div.innerText = letter;
+    return div;
+};
 
 // ─── Auth & Tokens ────────────────────────────────────────────────────────────
 
@@ -42,8 +75,8 @@ const saveTokenToDb = (token) => {
     set(ref(db, `users/${userPath}/tokens/${tokenKey}`), token);
 };
 
-getToken(messaging, { vapidKey: 'BCVfZS0S7FdKxMoCSPxRv-026OJjJUdidX1UdFJVtr3xO9nAK1-nx408bKbjChgjyh3U9KOwyjE2gcdFROVclPA' })
-    .then((token) => { if (token) saveTokenToDb(token); })
+getToken(messaging, { vapidKey: VAPID })
+    .then(token => { if (token) saveTokenToDb(token); })
     .catch(err => console.log('Messaging error:', err));
 
 async function hashPassword(password) {
@@ -53,33 +86,37 @@ async function hashPassword(password) {
     return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
+const updateSettingsAvatar = (url) => {
+    const img = document.getElementById('myAvatar');
+    const placeholder = document.getElementById('myAvatarPlaceholder');
+    document.getElementById('myUsername').innerText = currentUser;
+    if (url) {
+        img.src = url;
+        img.style.display = 'block';
+        placeholder.style.display = 'none';
+    } else {
+        img.style.display = 'none';
+        placeholder.style.display = 'flex';
+        placeholder.innerText = currentUser[1]?.toUpperCase() || '?';
+    }
+};
+
 const proceed = (user) => {
     currentUser = user;
     realUser = user;
     document.getElementById('userAuthOverlay').style.display = 'none';
-    // document.getElementById('siteAuthOverlay').style.display = 'none'; ← удали эту строку
     document.getElementById('chatApp').style.display = 'flex';
     checkAdmin(user);
     loadActiveChats();
+    getAvatar(user).then(url => updateSettingsAvatar(url));
 };
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-// Строит dbId из chatId — используется только когда нет forceDbId
-const buildChatDbId = (chatId) =>
-    chatId.startsWith('#')
-        ? 'group_' + chatId.replace('#', '')
-        : [currentUser, chatId].sort().join('_').replace(/@/g, '');
-
-// Возвращает актуальный dbId текущего чата (с учётом forceDbId от админа)
-const getActiveChatDbId = () => activeChatDbId;
 
 // ─── Admin ────────────────────────────────────────────────────────────────────
 
 function checkAdmin(user) {
     const panel = document.getElementById('adminPanel');
     if (!panel) return;
-    if (realUser === '@admin') { // ← realUser, не user
+    if (realUser === '@admin') {
         panel.style.display = 'block';
         loadAllThreads();
     } else {
@@ -94,11 +131,10 @@ function loadAllThreads() {
         list.innerHTML = '';
         const data = snap.val();
         if (!data) return;
-
         Object.keys(data).forEach(threadId => {
             const d = document.createElement('div');
             d.className = 'admin-btn';
-            d.style.cssText = 'font-size:0.7rem; text-align:left; border-bottom:1px solid var(--border); padding:10px;';
+            d.style.cssText = 'font-size:0.7rem;text-align:left;border-bottom:1px solid var(--border);padding:10px;';
             d.innerText = threadId.startsWith('group_')
                 ? '#' + threadId.replace('group_', '')
                 : threadId.split('_').join(' ↔ ');
@@ -126,13 +162,10 @@ window.genInvite = async () => {
     document.getElementById('newInviteField').value = '';
 };
 
-const SYSTEM_CHAT_ID = 'system_broadcast';
-
 window.sendGlobalMsg = async () => {
     const txt = await showCustomModal("Global Announcement:", true);
     if (!txt) return;
     push(ref(db, `messages/${SYSTEM_CHAT_ID}`), { user: '📢 SYSTEM', text: txt, timestamp: serverTimestamp() });
-    // Добавляем в active_chats всем юзерам
     const snap = await get(ref(db, 'users'));
     Object.keys(snap.val() || {}).forEach(username => {
         set(ref(db, `active_chats/${username}/${SYSTEM_CHAT_ID}`), { title: '📢 System' });
@@ -151,8 +184,24 @@ window.changeMyName = async () => {
     const n = await showCustomModal("Act as @username:", true);
     if (!n?.startsWith('@')) return;
     currentUser = n;
-    // loadActiveChats и checkAdmin не трогаем — панель остаётся
     await showCustomModal(`Now acting as ${n}`);
+};
+
+window.changeAvatar = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const url = await uploadImg(file);
+        const key = currentUser.replace('@', '');
+        await set(ref(db, `users/${key}/avatar`), url);
+        avatarCache[key] = url;
+        updateSettingsAvatar(url);
+        await showCustomModal("Avatar updated!");
+    };
+    input.click();
 };
 
 // ─── Chat List ────────────────────────────────────────────────────────────────
@@ -168,9 +217,23 @@ function loadActiveChats() {
         Object.entries(data).forEach(([id, info]) => {
             const d = document.createElement('div');
             d.className = 'chat-item';
-            d.innerText = info.title;
-            if (currentChatId === info.title) d.classList.add('active');
+            d.style.cssText = 'display:flex;align-items:center;gap:10px;';
             d.onclick = () => openChat(info.title);
+            if (currentChatId === info.title) d.classList.add('active');
+
+            const avatarEl = makeAvatarEl(null, info.title, 28);
+            const nameEl = document.createElement('span');
+            nameEl.innerText = info.title;
+            nameEl.style.flex = '1';
+
+            if (!info.title.startsWith('#') && info.title.startsWith('@')) {
+                getAvatar(info.title).then(url => {
+                    if (url) avatarEl.replaceWith(makeAvatarEl(url, info.title, 28));
+                });
+            }
+
+            d.appendChild(avatarEl);
+            d.appendChild(nameEl);
             list.appendChild(d);
         });
     });
@@ -187,12 +250,8 @@ function openChat(id, targetMsgId = null, forceDbId = null) {
     document.getElementById('chatTitle').innerText = ' ' + id;
     if (window.innerWidth <= 600) document.getElementById('sidebar').classList.add('hidden');
 
-    activeChatDbId = forceDbId || buildChatDbId(id); // ← сохраняем актуальный dbId
+    activeChatDbId = forceDbId || buildChatDbId(id);
     currentChatRef = ref(db, 'messages/' + activeChatDbId);
-
-    activeChatDbId = forceDbId || buildChatDbId(id);
-
-    activeChatDbId = forceDbId || buildChatDbId(id);
 
     const isSystemChat = activeChatDbId === SYSTEM_CHAT_ID && realUser !== '@admin';
     document.querySelector('.input-row').style.display = isSystemChat ? 'none' : 'flex';
@@ -203,7 +262,7 @@ function openChat(id, targetMsgId = null, forceDbId = null) {
         const data = snap.val();
 
         if (!data) {
-            box.innerHTML = '<div style="text-align:center; opacity:0.5; margin-top:20px;">No messages yet</div>';
+            box.innerHTML = '<div style="text-align:center;opacity:0.5;margin-top:20px;">No messages yet</div>';
             isFirstLoad = false;
             return;
         }
@@ -213,29 +272,29 @@ function openChat(id, targetMsgId = null, forceDbId = null) {
         Object.entries(data).forEach(([msgKey, m]) => {
             const isMe = m.user === currentUser;
             const date = m.timestamp ? new Date(m.timestamp) : new Date();
-            const currentDateStr = `${date.getDate().toString().padStart(2, '0')}.${(date.getMonth() + 1).toString().padStart(2, '0')}.${date.getFullYear()}`;
+            const dateStr = `${date.getDate().toString().padStart(2,'0')}.${(date.getMonth()+1).toString().padStart(2,'0')}.${date.getFullYear()}`;
+            const timeStr = `${date.getHours().toString().padStart(2,'0')}:${date.getMinutes().toString().padStart(2,'0')}`;
 
-            if (currentDateStr !== lastDate) {
+            if (dateStr !== lastDate) {
                 const div = document.createElement('div');
                 div.className = 'date-divider';
-                div.innerHTML = `<span>${currentDateStr}</span>`;
+                div.innerHTML = `<span>${dateStr}</span>`;
                 box.appendChild(div);
-                lastDate = currentDateStr;
+                lastDate = dateStr;
                 lastUser = null;
             }
 
-            const timeStr = `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
             const wrapper = document.createElement('div');
-            wrapper.className = `message-wrapper ${isMe ? 'sent' : 'received'} ${m.user === '@admin' ? 'admin-msg' : ''}`;
+            wrapper.className = `message-wrapper ${isMe ? 'sent' : 'received'}`;
             wrapper.id = 'msg-' + msgKey;
 
             let content = m.text || '';
             if (content.startsWith('IMG_URL:')) {
                 const url = content.replace('IMG_URL:', '');
-                content = `<img src="${url}" style="max-width:100%; border-radius:8px; cursor:pointer; display:block;" onclick="window.open('${url}')">`;
+                content = `<img src="${url}" style="max-width:100%;border-radius:8px;cursor:pointer;display:block;" onclick="window.open('${url}')">`;
             } else {
                 content = content
-                    .replace(/(https?:\/\/[^\s]+)/g, (url) => `<a href="${url}" target="_blank" style="color:inherit; text-decoration:underline;">${url}</a>`)
+                    .replace(/(https?:\/\/[^\s]+)/g, url => `<a href="${url}" target="_blank" style="color:inherit;text-decoration:underline;">${url}</a>`)
                     .replace(/(@[a-zA-Z0-9_]+)/g, '<span class="mention">$1</span>');
             }
 
@@ -274,6 +333,28 @@ function openChat(id, targetMsgId = null, forceDbId = null) {
                 </div>
             `;
 
+            if (!isMe && m.user !== lastUser) {
+                const avatarRow = document.createElement('div');
+                avatarRow.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:2px;padding-left:2px;';
+
+                const avatarEl = makeAvatarEl(null, m.user, 20);
+                const nameEl = document.createElement('span');
+                nameEl.style.cssText = 'font-size:0.72rem;font-weight:900;color:var(--link);';
+                nameEl.innerText = m.user;
+
+                avatarRow.appendChild(avatarEl);
+                avatarRow.appendChild(nameEl);
+
+                // Вставляем строку с аватаркой ПЕРЕД wrapper в box
+                box.appendChild(avatarRow);
+
+                getAvatar(m.user).then(url => {
+                    if (url) avatarEl.replaceWith(makeAvatarEl(url, m.user, 20));
+                });
+            }
+
+            box.appendChild(wrapper);
+
             box.appendChild(wrapper);
             lastUser = m.user;
         });
@@ -294,6 +375,8 @@ function openChat(id, targetMsgId = null, forceDbId = null) {
         }
     });
 }
+
+// ─── Send ─────────────────────────────────────────────────────────────────────
 
 const sendMsg = async () => {
     const inp = document.getElementById('msgInput');
@@ -337,38 +420,36 @@ const sendMsg = async () => {
     inp.style.height = '50px';
     document.getElementById('sendBtn').classList.remove('active');
 };
+
 // ─── Feed ─────────────────────────────────────────────────────────────────────
 
 window.renderComments = (postId, comments, parentId = 'root', depth = 0) => {
     if (!comments) return '';
     const indent = Math.min(depth * 12, 48);
-
     return Object.entries(comments)
         .filter(([_, c]) => c.parentId === parentId)
         .map(([id, c]) => `
-            <div class="comment-branch" data-id="${id}" style="margin-left:${indent}px; border-left:2px solid var(--border); padding-left:10px; margin-top:8px;">
-                <div style="font-size:0.75rem; margin-bottom:2px;">
-                    <b style="color:var(--link)">${c.user}</b>
+            <div class="comment-branch" data-id="${id}" style="margin-left:${indent}px;border-left:2px solid var(--border);padding-left:10px;margin-top:8px;">
+                <div style="font-size:0.75rem;margin-bottom:2px;"><b style="color:var(--link)">${c.user}</b></div>
+                <div class="comment-text" style="font-size:0.85rem;margin:2px 0;white-space:pre-wrap;">${c.text}</div>
+                <div style="display:flex;gap:10px;font-size:0.7rem;opacity:0.6;margin-top:4px;">
+                    <span onclick="window.openReplyBox('${postId}','${id}')" style="cursor:pointer;font-weight:bold;">Reply</span>
+                    ${c.user === currentUser ? `<span onclick="window.openEditBox('${postId}','${id}')" style="cursor:pointer;font-weight:bold;">Edit</span>` : ''}
                 </div>
-                <div class="comment-text" style="font-size:0.85rem; margin:2px 0; white-space:pre-wrap;">${c.text}</div>
-                <div class="comment-actions" style="display:flex; gap:10px; font-size:0.7rem; opacity:0.6; margin-top:4px; align-items:center;">
-                    <span onclick="window.openReplyBox('${postId}', '${id}')" style="cursor:pointer; font-weight:bold;">Reply</span>
-                    ${c.user === currentUser ? `<span onclick="window.openEditBox('${postId}', '${id}')" style="cursor:pointer; font-weight:bold;">Edit</span>` : ''}
-                </div>
-                <div id="reply-box-${id}" style="display:none; margin-top:6px;">
-                    <textarea placeholder="Reply..." style="width:100%; font-size:0.8rem; padding:6px 8px; border:1px solid var(--border); border-radius:8px; background:var(--surface); color:var(--text-1); resize:none; outline:none; font-family:var(--font-main);" rows="2"
+                <div id="reply-box-${id}" style="display:none;margin-top:6px;">
+                    <textarea placeholder="Reply..." style="width:100%;font-size:0.8rem;padding:6px 8px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text-1);resize:none;outline:none;font-family:var(--font-main);" rows="2"
                         onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();window.submitReply('${postId}','${id}',this)}"></textarea>
-                    <div style="display:flex; gap:6px; margin-top:4px;">
-                        <button onclick="window.submitReply('${postId}','${id}',this.parentElement.previousElementSibling)" style="font-size:0.75rem; padding:3px 10px; border-radius:6px; border:1px solid var(--link); background:var(--link); color:#fff; cursor:pointer;">Send</button>
-                        <button onclick="document.getElementById('reply-box-${id}').style.display='none'" style="font-size:0.75rem; padding:3px 10px; border-radius:6px; border:1px solid var(--border); background:transparent; color:var(--text-2); cursor:pointer;">Cancel</button>
+                    <div style="display:flex;gap:6px;margin-top:4px;">
+                        <button onclick="window.submitReply('${postId}','${id}',this.parentElement.previousElementSibling)" style="font-size:0.75rem;padding:3px 10px;border-radius:6px;border:1px solid var(--link);background:var(--link);color:#fff;cursor:pointer;">Send</button>
+                        <button onclick="document.getElementById('reply-box-${id}').style.display='none'" style="font-size:0.75rem;padding:3px 10px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text-2);cursor:pointer;">Cancel</button>
                     </div>
                 </div>
-                <div id="edit-box-${id}" style="display:none; margin-top:6px;">
-                    <textarea style="width:100%; font-size:0.8rem; padding:6px 8px; border:1px solid var(--border); border-radius:8px; background:var(--surface); color:var(--text-1); resize:none; outline:none; font-family:var(--font-main);" rows="2"
+                <div id="edit-box-${id}" style="display:none;margin-top:6px;">
+                    <textarea style="width:100%;font-size:0.8rem;padding:6px 8px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text-1);resize:none;outline:none;font-family:var(--font-main);" rows="2"
                         onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();window.submitEdit('${postId}','${id}',this)}">${c.text}</textarea>
-                    <div style="display:flex; gap:6px; margin-top:4px;">
-                        <button onclick="window.submitEdit('${postId}','${id}',this.parentElement.previousElementSibling)" style="font-size:0.75rem; padding:3px 10px; border-radius:6px; border:1px solid var(--link); background:var(--link); color:#fff; cursor:pointer;">Save</button>
-                        <button onclick="document.getElementById('edit-box-${id}').style.display='none'" style="font-size:0.75rem; padding:3px 10px; border-radius:6px; border:1px solid var(--border); background:transparent; color:var(--text-2); cursor:pointer;">Cancel</button>
+                    <div style="display:flex;gap:6px;margin-top:4px;">
+                        <button onclick="window.submitEdit('${postId}','${id}',this.parentElement.previousElementSibling)" style="font-size:0.75rem;padding:3px 10px;border-radius:6px;border:1px solid var(--link);background:var(--link);color:#fff;cursor:pointer;">Save</button>
+                        <button onclick="document.getElementById('edit-box-${id}').style.display='none'" style="font-size:0.75rem;padding:3px 10px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text-2);cursor:pointer;">Cancel</button>
                     </div>
                 </div>
                 ${window.renderComments(postId, comments, id, depth + 1)}
@@ -377,13 +458,13 @@ window.renderComments = (postId, comments, parentId = 'root', depth = 0) => {
 };
 
 window.openReplyBox = (postId, commentId) => {
-    document.querySelectorAll('[id^="reply-box-"], [id^="edit-box-"]').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('[id^="reply-box-"],[id^="edit-box-"]').forEach(el => el.style.display = 'none');
     const box = document.getElementById(`reply-box-${commentId}`);
     if (box) { box.style.display = 'block'; box.querySelector('textarea').focus(); }
 };
 
 window.openEditBox = (postId, commentId) => {
-    document.querySelectorAll('[id^="reply-box-"], [id^="edit-box-"]').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('[id^="reply-box-"],[id^="edit-box-"]').forEach(el => el.style.display = 'none');
     const box = document.getElementById(`edit-box-${commentId}`);
     if (box) { box.style.display = 'block'; box.querySelector('textarea').focus(); }
 };
@@ -426,8 +507,8 @@ window.openFeed = () => {
 
     document.getElementById('chatTitle').innerHTML = `
         Feed
-        <span onclick="window.feedSortMode='new'; window.openFeed()" style="cursor:pointer; font-size:0.7rem; margin-left:10px; color:${window.feedSortMode === 'new' ? 'var(--link)' : 'var(--text-3)'}">New</span>
-        <span onclick="window.feedSortMode='top'; window.openFeed()" style="cursor:pointer; font-size:0.7rem; margin-left:5px; color:${window.feedSortMode === 'top' ? 'var(--link)' : 'var(--text-3)'}">Top</span>
+        <span onclick="window.feedSortMode='new';window.openFeed()" style="cursor:pointer;font-size:0.7rem;margin-left:10px;color:${window.feedSortMode==='new'?'var(--link)':'var(--text-3)'}">New</span>
+        <span onclick="window.feedSortMode='top';window.openFeed()" style="cursor:pointer;font-size:0.7rem;margin-left:5px;color:${window.feedSortMode==='top'?'var(--link)':'var(--text-3)'}">Top</span>
     `;
 
     const box = document.getElementById('chatBox');
@@ -437,7 +518,7 @@ window.openFeed = () => {
         box.innerHTML = '';
         const data = snap.val();
         if (!data) {
-            box.innerHTML = '<div style="text-align:center; opacity:0.5; margin-top:20px;">No posts yet</div>';
+            box.innerHTML = '<div style="text-align:center;opacity:0.5;margin-top:20px;">No posts yet</div>';
             return;
         }
 
@@ -450,29 +531,22 @@ window.openFeed = () => {
             const card = document.createElement('div');
             card.className = 'post-card';
             const commsHtml = window.renderComments(id, p.comments, 'root');
-
             card.innerHTML = `
                 <div class="post-user">${p.user}</div>
                 <div class="post-content">${p.text}</div>
                 <div class="post-actions">
-                    <div class="action-btn" onclick="window.upvote('${id}')">
-                        <i class="fa-solid fa-arrow-up"></i> ${p.votes || 0}
-                    </div>
-                    <div class="action-btn" onclick="window.openReplyBox('${id}', 'root-${id}')">
-                        <i class="fa-solid fa-comment"></i> Comment
-                    </div>
+                    <div class="action-btn" onclick="window.upvote('${id}')"><i class="fa-solid fa-arrow-up"></i> ${p.votes || 0}</div>
+                    <div class="action-btn" onclick="window.openReplyBox('${id}','root-${id}')"><i class="fa-solid fa-comment"></i> Comment</div>
                 </div>
-                <div id="reply-box-root-${id}" style="display:none; margin-top:8px;">
-                    <textarea placeholder="Write a comment..." style="width:100%; font-size:0.85rem; padding:8px 10px; border:1px solid var(--border); border-radius:10px; background:var(--surface); color:var(--text-1); resize:none; outline:none; font-family:var(--font-main);" rows="2"
+                <div id="reply-box-root-${id}" style="display:none;margin-top:8px;">
+                    <textarea placeholder="Write a comment..." style="width:100%;font-size:0.85rem;padding:8px 10px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--text-1);resize:none;outline:none;font-family:var(--font-main);" rows="2"
                         onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();window.submitReply('${id}','root',this)}"></textarea>
-                    <div style="display:flex; gap:6px; margin-top:4px;">
-                        <button onclick="window.submitReply('${id}','root',this.parentElement.previousElementSibling)" style="font-size:0.75rem; padding:3px 10px; border-radius:6px; border:1px solid var(--link); background:var(--link); color:#fff; cursor:pointer;">Send</button>
-                        <button onclick="document.getElementById('reply-box-root-${id}').style.display='none'" style="font-size:0.75rem; padding:3px 10px; border-radius:6px; border:1px solid var(--border); background:transparent; color:var(--text-2); cursor:pointer;">Cancel</button>
+                    <div style="display:flex;gap:6px;margin-top:4px;">
+                        <button onclick="window.submitReply('${id}','root',this.parentElement.previousElementSibling)" style="font-size:0.75rem;padding:3px 10px;border-radius:6px;border:1px solid var(--link);background:var(--link);color:#fff;cursor:pointer;">Send</button>
+                        <button onclick="document.getElementById('reply-box-root-${id}').style.display='none'" style="font-size:0.75rem;padding:3px 10px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text-2);cursor:pointer;">Cancel</button>
                     </div>
                 </div>
-                <div class="comments-section" style="${commsHtml ? '' : 'display:none;'}">
-                    ${commsHtml}
-                </div>
+                <div class="comments-section" style="${commsHtml ? '' : 'display:none;'}">${commsHtml}</div>
             `;
             box.appendChild(card);
         });
@@ -495,7 +569,6 @@ const showMenu = (e, msgId, text, isMe) => {
 
     const menuW = menu.offsetWidth;
     const menuH = menu.offsetHeight;
-
     let x = e.clientX || (e.touches?.[0]?.clientX ?? 0);
     let y = e.clientY || (e.touches?.[0]?.clientY ?? 0);
 
@@ -524,9 +597,7 @@ document.getElementById('delBtn').onclick = async () => {
 document.getElementById('editBtn').onclick = async () => {
     document.getElementById('msgMenu').style.display = 'none';
     const nt = await showCustomModal("Edit", true, selectedMsgText);
-    if (nt) {
-        set(ref(db, `messages/${getActiveChatDbId()}/${selectedMsgId}/text`), nt.trim());
-    }
+    if (nt) set(ref(db, `messages/${getActiveChatDbId()}/${selectedMsgId}/text`), nt.trim());
 };
 
 document.addEventListener('click', () => { document.getElementById('msgMenu').style.display = 'none'; });
@@ -538,7 +609,7 @@ window.setReaction = (emoji) => {
     const userKey = currentUser.replace('@', '');
     const reactionRef = ref(db, `messages/${getActiveChatDbId()}/${reactionTargetMsgId}/reactions/${userKey}`);
     get(reactionRef).then(snap => { set(reactionRef, snap.val() === emoji ? null : emoji); });
-    document.getElementById('reactionPicker').style.display = 'none';
+    document.getElementById('msgMenu').style.display = 'none';
 };
 
 // ─── Modal ────────────────────────────────────────────────────────────────────
@@ -578,21 +649,21 @@ const uploadImg = async (file) => {
 
 const init = () => {
     const savedUser = localStorage.getItem('currentUser');
-        if (savedUser) {
-            proceed(savedUser);
-        } else {
-            document.getElementById('userAuthOverlay').style.display = 'flex';
-        }
+    if (savedUser) {
+        proceed(savedUser);
+    } else {
+        document.getElementById('userAuthOverlay').style.display = 'flex';
+    }
 
     const themeBtn = document.getElementById('themeToggle');
     const currentTheme = localStorage.getItem('theme') || 'light';
     document.documentElement.setAttribute('data-theme', currentTheme);
-    themeBtn.innerHTML = currentTheme === 'dark' ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
+    themeBtn.innerHTML = currentTheme === 'dark' ? '<i class="fa-solid fa-sun"></i> Theme' : '<i class="fa-solid fa-moon"></i> Theme';
     themeBtn.onclick = () => {
         const newTheme = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
         document.documentElement.setAttribute('data-theme', newTheme);
         localStorage.setItem('theme', newTheme);
-        themeBtn.innerHTML = newTheme === 'dark' ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
+        themeBtn.innerHTML = newTheme === 'dark' ? '<i class="fa-solid fa-sun"></i> Theme' : '<i class="fa-solid fa-moon"></i> Theme';
     };
 
     const area = document.getElementById('msgInput');
@@ -603,7 +674,18 @@ const init = () => {
         if (area.value.trim().length > 0 && currentChatId) btn.classList.add('active');
         else btn.classList.remove('active');
     };
+    area.onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); } };
+
     document.getElementById('openSystemBtn').onclick = () => openChat('📢 System', null, SYSTEM_CHAT_ID);
+    document.getElementById('settingsBtn').onclick = () => document.getElementById('settingsPanel').classList.toggle('hidden');
+    document.getElementById('logoutBtn').onclick = () => { localStorage.clear(); location.reload(); };
+    document.getElementById('menuToggle').onclick = () => document.getElementById('sidebar').classList.toggle('hidden');
+    document.getElementById('sendBtn').onclick = sendMsg;
+    document.getElementById('openFeedBtn').onclick = window.openFeed;
+    document.getElementById('createGroupBtn').onclick = async () => {
+        const g = await showCustomModal("Group name:", true);
+        if (g) openChat('#' + g.trim().replace(/#/g, ''));
+    };
 
     document.getElementById('userAuthBtn').onclick = async () => {
         const rawName = document.getElementById('loginUser').value.trim().replace('@', '');
@@ -634,16 +716,6 @@ const init = () => {
         proceed(uName);
     };
 
-    document.getElementById('logoutBtn').onclick = () => { localStorage.clear(); location.reload(); };
-    document.getElementById('menuToggle').onclick = () => document.getElementById('sidebar').classList.toggle('hidden');
-    document.getElementById('sendBtn').onclick = sendMsg;
-    document.getElementById('createGroupBtn').onclick = async () => {
-        const g = await showCustomModal("Group name:", true);
-        if (g) openChat('#' + g.trim().replace(/#/g, ''));
-    };
-    document.getElementById('openFeedBtn').onclick = window.openFeed;
-    area.onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); } };
-
     const sInput = document.getElementById('chatSearch');
     const sSuggest = document.getElementById('searchSuggestions');
     sInput.oninput = async () => {
@@ -670,7 +742,6 @@ const init = () => {
             const myChats = myChatsSnap.val() || {};
             const msgsSnap = await get(ref(db, 'messages'));
             const allMessages = msgsSnap.val() || {};
-
             Object.keys(myChats).forEach(chatDbId => {
                 const msgs = allMessages[chatDbId];
                 if (!msgs) return;
@@ -680,9 +751,9 @@ const init = () => {
                         item.className = 'chat-item search-result';
                         const chatTitle = myChats[chatDbId].title;
                         item.innerHTML = `
-                            <div style="font-size:0.8em; color:var(--primary);">в ${chatTitle}</div>
+                            <div style="font-size:0.8em;color:var(--link);">в ${chatTitle}</div>
                             <div style="font-weight:bold;">${m.user}:</div>
-                            <div style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${m.text}</div>
+                            <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${m.text}</div>
                         `;
                         item.onclick = () => { openChat(chatTitle, msgId); sInput.value = ''; sSuggest.style.display = 'none'; };
                         sSuggest.appendChild(item);
@@ -717,12 +788,9 @@ window.addEventListener('load', () => {
         .then((reg) => {
             console.log('SW registered:', reg.scope);
             if (currentUser) {
-                getToken(messaging, {
-                    vapidKey: 'BCVfZS0S7FdKxMoCSPxRv-026OJjJUdidX1UdFJVtr3xO9nAK1-nx408bKbjChgjyh3U9KOwyjE2gcdFROVclPA',
-                    serviceWorkerRegistration: reg
-                })
-                .then(token => { if (token) saveTokenToDb(token); })
-                .catch(err => console.log('Token error:', err));
+                getToken(messaging, { vapidKey: VAPID, serviceWorkerRegistration: reg })
+                    .then(token => { if (token) saveTokenToDb(token); })
+                    .catch(err => console.log('Token error:', err));
             }
         })
         .catch(err => console.log('SW registration failed:', err));

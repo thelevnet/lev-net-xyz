@@ -10,13 +10,7 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-// Фоновая обработка (когда вкладка закрыта)
 messaging.onBackgroundMessage((payload) => {
     console.log('Background message:', payload);
-    const title = payload.notification.title;
-    const options = {
-        body: payload.notification.body,
-        icon: '/logo.png'
-    };
-    self.registration.showNotification(title, options);
+    // Ничего не делаем — FCM показывает сам
 });

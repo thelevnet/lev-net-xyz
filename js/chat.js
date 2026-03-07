@@ -57,7 +57,7 @@ const proceed = (user) => {
     currentUser = user;
     realUser = user;
     document.getElementById('userAuthOverlay').style.display = 'none';
-    document.getElementById('siteAuthOverlay').style.display = 'none';
+    // document.getElementById('siteAuthOverlay').style.display = 'none'; ← удали эту строку
     document.getElementById('chatApp').style.display = 'flex';
     checkAdmin(user);
     loadActiveChats();
@@ -88,7 +88,7 @@ function checkAdmin(user) {
 }
 
 function loadAllThreads() {
-    if (currentUser !== '@admin') return;
+    if (realUser !== '@admin') return;
     onValue(ref(db, 'messages'), (snap) => {
         const list = document.getElementById('allChatsList');
         list.innerHTML = '';
@@ -110,45 +110,49 @@ function loadAllThreads() {
 
 window.banUser = async () => {
     const userToBan = document.getElementById('banUserField').value.trim().replace('@', '');
-    if (!userToBan || userToBan === 'admin') return alert("Can't do that");
-    if (confirm(`Ban ${userToBan}?`)) {
+    if (!userToBan || userToBan === 'admin') return await showCustomModal("Can't do that");
+    if (await showCustomModal(`Ban ${userToBan}?`)) {
         await set(ref(db, `users/${userToBan}`), null);
-        alert(`${userToBan} has been nuked.`);
+        await showCustomModal(`${userToBan} has been nuked.`);
         document.getElementById('banUserField').value = '';
     }
 };
 
 window.genInvite = async () => {
     const code = document.getElementById('newInviteField').value.trim();
-    if (!code) return alert("Enter code");
+    if (!code) return await showCustomModal("Enter code");
     await set(ref(db, `invites/${code}`), true);
-    alert(`Invite ${code} is now active.`);
+    await showCustomModal(`Invite ${code} is now active.`);
     document.getElementById('newInviteField').value = '';
 };
 
+const SYSTEM_CHAT_ID = 'system_broadcast';
+
 window.sendGlobalMsg = async () => {
-    const txt = prompt("Global Announcement:");
+    const txt = await showCustomModal("Global Announcement:", true);
     if (!txt) return;
-    const snap = await get(ref(db, 'messages'));
-    Object.keys(snap.val() || {}).forEach(chatId => {
-        push(ref(db, `messages/${chatId}`), { user: '📢 SYSTEM', text: txt, timestamp: serverTimestamp() });
+    push(ref(db, `messages/${SYSTEM_CHAT_ID}`), { user: '📢 SYSTEM', text: txt, timestamp: serverTimestamp() });
+    // Добавляем в active_chats всем юзерам
+    const snap = await get(ref(db, 'users'));
+    Object.keys(snap.val() || {}).forEach(username => {
+        set(ref(db, `active_chats/${username}/${SYSTEM_CHAT_ID}`), { title: '📢 System' });
     });
 };
 
 window.deleteEntireChat = async () => {
-    if (!currentChatId || currentChatId === 'GLOBAL_FEED') return alert("Select a real chat first");
-    if (confirm("DELETE ALL MESSAGES?")) {
+    if (!currentChatId || currentChatId === 'GLOBAL_FEED') return await showCustomModal("Select a real chat first");
+    if (await showCustomModal("DELETE ALL MESSAGES?")) {
         await set(ref(db, `messages/${getActiveChatDbId()}`), null);
-        alert("Nuked.");
+        await showCustomModal("Nuked.");
     }
 };
 
 window.changeMyName = async () => {
-    const n = prompt("Act as @username:");
+    const n = await showCustomModal("Act as @username:", true);
     if (!n?.startsWith('@')) return;
     currentUser = n;
     // loadActiveChats и checkAdmin не трогаем — панель остаётся
-    alert(`Now acting as ${n}`);
+    await showCustomModal(`Now acting as ${n}`);
 };
 
 // ─── Chat List ────────────────────────────────────────────────────────────────
@@ -185,6 +189,13 @@ function openChat(id, targetMsgId = null, forceDbId = null) {
 
     activeChatDbId = forceDbId || buildChatDbId(id); // ← сохраняем актуальный dbId
     currentChatRef = ref(db, 'messages/' + activeChatDbId);
+
+    activeChatDbId = forceDbId || buildChatDbId(id);
+
+    activeChatDbId = forceDbId || buildChatDbId(id);
+
+    const isSystemChat = activeChatDbId === SYSTEM_CHAT_ID && realUser !== '@admin';
+    document.querySelector('.input-row').style.display = isSystemChat ? 'none' : 'flex';
 
     onValue(currentChatRef, (snap) => {
         const box = document.getElementById('chatBox');
@@ -475,17 +486,27 @@ const showMenu = (e, msgId, text, isMe) => {
     selectedMsgId = msgId;
     selectedMsgText = text;
     const menu = document.getElementById('msgMenu');
-    const canTouch = isMe || currentUser === '@admin';
+    const canTouch = isMe || realUser === '@admin';
     document.getElementById('editBtn').style.display = canTouch ? 'flex' : 'none';
     document.getElementById('delBtn').style.display = canTouch ? 'flex' : 'none';
+
+    menu.style.visibility = 'hidden';
     menu.style.display = 'flex';
+
+    const menuW = menu.offsetWidth;
+    const menuH = menu.offsetHeight;
 
     let x = e.clientX || (e.touches?.[0]?.clientX ?? 0);
     let y = e.clientY || (e.touches?.[0]?.clientY ?? 0);
-    if (x + 150 > window.innerWidth) x = window.innerWidth - 160;
-    if (y + 120 > window.innerHeight) y = window.innerHeight - 130;
+
+    if (x + menuW > window.innerWidth) x = window.innerWidth - menuW - 10;
+    if (y + menuH > window.innerHeight) y = window.innerHeight - menuH - 10;
+    if (x < 10) x = 10;
+    if (y < 10) y = 10;
+
     menu.style.left = `${x}px`;
     menu.style.top = `${y}px`;
+    menu.style.visibility = 'visible';
 };
 
 window.copyMsg = () => {
@@ -557,7 +578,11 @@ const uploadImg = async (file) => {
 
 const init = () => {
     const savedUser = localStorage.getItem('currentUser');
-    if (savedUser) proceed(savedUser);
+        if (savedUser) {
+            proceed(savedUser);
+        } else {
+            document.getElementById('userAuthOverlay').style.display = 'flex';
+        }
 
     const themeBtn = document.getElementById('themeToggle');
     const currentTheme = localStorage.getItem('theme') || 'light';
@@ -578,22 +603,14 @@ const init = () => {
         if (area.value.trim().length > 0 && currentChatId) btn.classList.add('active');
         else btn.classList.remove('active');
     };
-
-    document.getElementById('siteAuthBtn').addEventListener('click', () => {
-        const val = document.getElementById('sitePassInput').value;
-        if (val === "314") {
-            localStorage.setItem('siteAuth', "314");
-            document.getElementById('siteAuthOverlay').style.display = 'none';
-            document.getElementById('userAuthOverlay').style.display = 'flex';
-        } else alert("Wrong password!");
-    });
+    document.getElementById('openSystemBtn').onclick = () => openChat('📢 System', null, SYSTEM_CHAT_ID);
 
     document.getElementById('userAuthBtn').onclick = async () => {
         const rawName = document.getElementById('loginUser').value.trim().replace('@', '');
         const uPassRaw = document.getElementById('loginPass').value.trim();
 
-        if (rawName.length < 3) return alert("Name too short! Min 3 characters.");
-        if (!uPassRaw) return alert("Fill in password!");
+        if (rawName.length < 3) return await showCustomModal("Name too short! Min 3 characters.");
+        if (!uPassRaw) return await showCustomModal("Fill in password!");
 
         const uPass = await hashPassword(uPassRaw);
         const uName = '@' + rawName;
@@ -601,14 +618,14 @@ const init = () => {
         const snap = await get(userRef);
 
         if (snap.exists()) {
-            if (snap.val().pass !== uPass) return alert("Wrong password!");
+            if (snap.val().pass !== uPass) return await showCustomModal("Wrong password!");
         } else {
-            const inviteCode = prompt("New account? Enter Invite Code:");
+            const inviteCode = await showCustomModal("New account? Enter Invite Code:", true);
             const invSnap = await get(ref(db, `invites/${inviteCode}`));
-            if (!invSnap.exists()) return alert("Invalid or used invite code!");
-            if (!/^[a-zA-Z0-9]+$/.test(rawName)) return alert("Only letters and numbers allowed!");
+            if (!invSnap.exists()) return await showCustomModal("Invalid or used invite code!");
+            if (!/^[a-zA-Z0-9]+$/.test(rawName)) return await showCustomModal("Only letters and numbers allowed!");
             const forbidden = ['admin', 'owner', 'system', 'root'];
-            if (forbidden.some(word => rawName.toLowerCase().includes(word))) return alert("Forbidden name!");
+            if (forbidden.some(word => rawName.toLowerCase().includes(word))) return await showCustomModal("Forbidden name!");
             await set(userRef, { pass: uPass });
             await set(ref(db, `invites/${inviteCode}`), null);
         }
@@ -620,9 +637,9 @@ const init = () => {
     document.getElementById('logoutBtn').onclick = () => { localStorage.clear(); location.reload(); };
     document.getElementById('menuToggle').onclick = () => document.getElementById('sidebar').classList.toggle('hidden');
     document.getElementById('sendBtn').onclick = sendMsg;
-    document.getElementById('createGroupBtn').onclick = () => {
-        const g = prompt("Group name:").trim().replace(/#/, '');
-        if (g) openChat('#' + g);
+    document.getElementById('createGroupBtn').onclick = async () => {
+        const g = await showCustomModal("Group name:", true);
+        if (g) openChat('#' + g.trim().replace(/#/g, ''));
     };
     document.getElementById('openFeedBtn').onclick = window.openFeed;
     area.onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); } };
@@ -683,7 +700,7 @@ const init = () => {
         try {
             const url = await uploadImg(file);
             push(ref(db, 'messages/' + getActiveChatDbId()), { user: currentUser, text: `IMG_URL:${url}`, timestamp: serverTimestamp() });
-        } catch { alert("Upload failed"); }
+        } catch { await showCustomModal("Upload failed"); }
         finally { btn.style.opacity = '1'; e.target.value = ''; }
     };
 

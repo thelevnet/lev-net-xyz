@@ -19,12 +19,6 @@
 </head>
 <body>
 
-<div id="siteAuthOverlay" class="overlay">
-    <h3>Password</h3>
-    <input type="password" id="sitePassInput" placeholder="site password" class="card">
-    <button id="siteAuthBtn" class="card">Open</button>
-</div>
-
 <div id="userAuthOverlay" class="overlay" style="display: none;">
     <h3>Login / Registration</h3>
     <p style="font-size: 0.8rem;">You can't change your username later</p>
@@ -48,7 +42,10 @@
             <div class="sidebar-content">
                 <input type="text" id="chatSearch" placeholder="@user or #group" class="card">
                 <div id="searchSuggestions" class="card" style="display:none; position:absolute; width:210px; z-index:100; max-height:200px; overflow-y:auto; margin-top:-5px;"></div>
-                <button id="createGroupBtn" class="card" style="color: var(--text);">+ Group +</button>
+                <button id="createGroupBtn" class="card" style="color: var(--text);">Add a group</button>
+                <button id="openSystemBtn" class="card" style="width:100%; margin-bottom:0.5rem; background:var(--surface-2); font-weight:bold;">
+                    <i class="fa-solid fa-satellite-dish"></i> System Chat
+                </button>
                 <button id="openFeedBtn" class="card" style="width:100%; margin-bottom:1rem; background:var(--surface-2); font-weight:bold;">
                     <i class="fa-solid fa-rss"></i> Global Feed
                 </button>

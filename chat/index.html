@@ -15,8 +15,7 @@
     <link rel="manifest" href="/manifest.json">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700&display=swap"
-          rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700&display=swap" rel="stylesheet">
 </head>
 <body>
 
@@ -50,17 +49,14 @@
                         style="width:100%; margin-bottom:1rem; background:var(--surface-2); font-weight:bold;">
                     <i class="fa-solid fa-rss"></i> Global Feed
                 </button>
-                <div id="activeChatsList">
-                </div>
+                <div id="activeChatsList"></div>
                 <br>
                 <div id="adminPanel">
                     <div class="admin-section-title">Security & Invites</div>
-
                     <div class="admin-group">
                         <input type="text" id="banUserField" placeholder="User to nuke..." class="admin-input">
                         <button onclick="banUser()" class="admin-btn danger">BAN USER</button>
                     </div>
-
                     <div class="admin-group">
                         <input type="text" id="newInviteField" placeholder="New invite code..." class="admin-input">
                         <button onclick="genInvite()" class="admin-btn">CREATE INVITE</button>
@@ -71,15 +67,9 @@
                     </div>
                     <div class="admin-section-title" style="margin-top:15px;">Actions</div>
                     <div class="admin-group">
-                        <button onclick="sendGlobalMsg()" class="admin-btn">
-                            <i class="fa-solid fa-bullhorn"></i> Broadcast to all chats
-                        </button>
-                        <button onclick="changeMyName()" class="admin-btn">
-                            <i class="fa-solid fa-pen"></i> Change my name
-                        </button>
-                        <button onclick="deleteEntireChat()" class="admin-btn danger">
-                            <i class="fa-solid fa-trash"></i> Delete current chat
-                        </button>
+                        <button onclick="sendGlobalMsg()" class="admin-btn"><i class="fa-solid fa-bullhorn"></i> Broadcast to all chats</button>
+                        <button onclick="changeMyName()" class="admin-btn"><i class="fa-solid fa-pen"></i> Change my name</button>
+                        <button onclick="deleteEntireChat()" class="admin-btn danger"><i class="fa-solid fa-trash"></i> Delete current chat</button>
                     </div>
                 </div>
             </div>
@@ -87,6 +77,22 @@
 
         <div id="mainChat">
             <div id="chatBox"></div>
+
+            <!-- Typing indicator -->
+            <div id="typingIndicator" style="display:none; align-items:center; gap:8px; padding:4px 20px 0; background:var(--surface);">
+                <div class="typing-dots"><span></span><span></span><span></span></div>
+                <span class="typing-text" style="font-size:0.75rem; opacity:0.6; font-style:italic;"></span>
+            </div>
+
+            <!-- Reply bar -->
+            <div id="replyBar" style="display:none; align-items:center; gap:10px; padding:8px 20px; background:var(--surface); border-top:2px solid var(--border); border-left:3px solid var(--link);">
+                <div style="flex:1; min-width:0;">
+                    <div class="reply-user" style="font-size:0.75rem; font-weight:900; color:var(--link);"></div>
+                    <div class="reply-preview" style="font-size:0.8rem; opacity:0.6; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"></div>
+                </div>
+                <button id="replyBarClose" style="background:none; border:none; cursor:pointer; color:var(--text-3); font-size:1rem; padding:0 4px;">✕</button>
+            </div>
+
             <div class="input-row" style="position: relative;">
                 <div id="cmdSuggestions" class="card"
                      style="display:none; position:absolute; bottom:100%; left:60px; width:calc(100% - 120px); z-index:1000; margin-bottom:10px;"></div>
@@ -100,9 +106,15 @@
                 <textarea id="msgInput" placeholder="Message..." class="card" rows="1"
                           style="resize:none; transition: height 0.2s;"></textarea>
 
+                <span id="recordingTimer" style="display:none; font-size:0.75rem; color:red; font-weight:bold; align-self:center; min-width:30px;"></span>
+                <button id="voiceBtn" class="card" style="width:50px; display:flex; align-items:center; justify-content:center;">
+                    <i class="fa-solid fa-microphone"></i>
+                </button>
+
                 <button id="sendBtn" class="card"><i class="fa-solid fa-paper-plane"></i></button>
             </div>
         </div>
+
         <div id="settingsPanel" class="hidden">
             <div class="sidebar-content">
                 <div class="admin-group" style="align-items:center; padding:15px; gap:10px;">
@@ -113,12 +125,8 @@
                     <div style="font-size:0.85rem; font-weight:bold;" id="myUsername"></div>
                 </div>
                 <div class="admin-group">
-                    <button onclick="changeAvatar()" class="admin-btn">
-                        <i class="fa-solid fa-camera"></i> Change Avatar
-                    </button>
-                    <button id="themeToggle" class="admin-btn">
-                        <i class="fa-solid fa-moon"></i> Theme
-                    </button>
+                    <button onclick="changeAvatar()" class="admin-btn"><i class="fa-solid fa-camera"></i> Change Avatar</button>
+                    <button id="themeToggle" class="admin-btn"><i class="fa-solid fa-moon"></i> Theme</button>
                     <div class="admin-section-title" style="margin-top:1rem; text-align:center;">Accent Color</div>
                     <div class="accent-picker" id="accentPicker">
                         <div class="accent-swatch" data-accent="cyan" style="background:#1cb1c5" title="Cyan"></div>
@@ -131,23 +139,20 @@
                         <div class="accent-swatch" data-accent="orange" style="background:#fb8c00" title="Orange"></div>
                         <div class="accent-swatch" data-accent="yellow" style="background:#f9a825" title="Yellow"></div>
                     </div>
-                    <button id="logoutBtn" class="admin-btn danger">
-                        <i class="fa-solid fa-right-from-bracket"></i> Logout
-                    </button>
+                    <button id="logoutBtn" class="admin-btn danger"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
                 </div>
                 <button id="pushNotifyBtn" class="card"
                         style="width:100%; margin-bottom:1rem; background:var(--surface-2); font-weight:bold; color: #ff9800;"
                         onclick="(async () => {
-            if (!('Notification' in window)) return alert('your browser doesn't support push notifications');
-            const permission = await Notification.requestPermission();
-            if (permission === 'granted') {
-                const registration = await navigator.serviceWorker.ready;
-                alert('should work');
-                console.log('SW Ready:', registration);
-            } else {
-                alert('try again');
-            }
-        })()">
+                            if (!('Notification' in window)) return alert('your browser does not support push notifications');
+                            const permission = await Notification.requestPermission();
+                            if (permission === 'granted') {
+                                const registration = await navigator.serviceWorker.ready;
+                                alert('should work');
+                            } else {
+                                alert('try again');
+                            }
+                        })()">
                     <i class="fa-solid fa-bell"></i> Enable Notifications
                 </button>
             </div>
@@ -156,6 +161,7 @@
 </div>
 
 <script type="module" src="../js/chat.js"></script>
+
 <div id="msgMenu" class="card" style="display:none; position:fixed; z-index:10000; width:250px; padding:5px; flex-direction:column; gap:5px;">
     <div style="display:flex; gap:5px; padding:5px; border-bottom:1px solid var(--border); margin-bottom:5px; justify-content:space-between;">
         <span class="reaction-item" onclick="setReaction('👍')">👍</span>
@@ -164,29 +170,23 @@
         <span class="reaction-item" onclick="setReaction('🔥')">🔥</span>
         <span class="reaction-item" onclick="setReaction('🎉')">🎉</span>
     </div>
-
-    <button onclick="copyMsg()" class="card" style="font-size:0.8rem; text-align:left;"><i
-            class="fa-regular fa-copy"></i> Copy
-    </button>
-    <button id="editBtn" class="card" style="font-size:0.8rem; text-align:left;"><i
-            class="fa-regular fa-pen-to-square"></i> Edit
-    </button>
-    <button id="delBtn" class="card" style="font-size:0.8rem; text-align:left; color:red;"><i
-            class="fa-regular fa-trash-can"></i> Delete
-    </button>
+    <button onclick="replyToSelected()" class="card" style="font-size:0.8rem; text-align:left;"><i class="fa-solid fa-reply"></i> Reply</button>
+    <button onclick="copyMsg()" class="card" style="font-size:0.8rem; text-align:left;"><i class="fa-regular fa-copy"></i> Copy</button>
+    <button onclick="forwardMsg()" class="card" style="font-size:0.8rem; text-align:left;"><i class="fa-solid fa-share"></i> Forward</button>
+    <button id="editBtn" class="card" style="font-size:0.8rem; text-align:left;"><i class="fa-regular fa-pen-to-square"></i> Edit</button>
+    <button id="delBtn" class="card" style="font-size:0.8rem; text-align:left; color:red;"><i class="fa-regular fa-trash-can"></i> Delete</button>
 </div>
+
 <div id="customModal" class="overlay" style="display: none; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);">
-    <div class="card"
-         style="width: 300px; display: flex; flex-direction: column; gap: 15px; background: var(--surface);">
+    <div class="card" style="width: 300px; display: flex; flex-direction: column; gap: 15px; background: var(--surface);">
         <h3 id="modalTitle" style="font-size: 1rem;">Action</h3>
         <input type="text" id="modalInput" class="card" style="display: none; width: 100%;">
         <div style="display: flex; gap: 10px; justify-content: flex-end;">
             <button id="modalCancel" class="card" style="padding: 5px 15px;">Cancel</button>
-            <button id="modalConfirm" class="card" style="padding: 5px 15px; background: var(--link); color: white;">
-                OK
-            </button>
+            <button id="modalConfirm" class="card" style="padding: 5px 15px; background: var(--link); color: white;">OK</button>
         </div>
     </div>
 </div>
+
 </body>
 </html>

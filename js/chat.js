@@ -288,38 +288,36 @@ const init = () => {
     });
 
     document.getElementById('userAuthBtn').onclick = async () => {
-        let uName = document.getElementById('loginUser').value.trim();
+        let rawName = document.getElementById('loginUser').value.trim().replace('@', '');
         const uPassRaw = document.getElementById('loginPass').value.trim();
-        const inviteCode = prompt("Enter Invite Code:"); // Запрос кода
 
-        // 1. Проверка инвайта
-        const invSnap = await get(ref(db, `invites/${inviteCode}`));
-        if (!invSnap.exists()) return alert("Invalid or used invite code!");
-
-        // 2. Фильтр символов (только a-z, 0-9)
-        const nameRegex = /^[a-zA-Z0-9]+$/;
-        if (!nameRegex.test(uName)) {
-            return alert("Only letters and numbers allowed in username!");
-        }
-
-        // 3. Запрет админских ников
-        const forbidden = ['admin', 'owner', 'system', 'root', 'support', 'moderator'];
-        if (forbidden.some(word => uName.toLowerCase().includes(word))) {
-            return alert("This name is forbidden!");
-        }
-
-        if (uName.length < 2 || !uPassRaw) return alert("Fill in everything!");
+        // Проверка длины (минимум 3 символа)
+        if (rawName.length < 3) return alert("Name too short! Min 3 characters.");
+        if (!uPassRaw) return alert("Fill in password!");
 
         const uPass = await hashPassword(uPassRaw);
-        uName = '@' + uName;
+        const uName = '@' + rawName;
 
-        const userRef = ref(db, 'users/' + uName.replace('@', ''));
+        const userRef = ref(db, 'users/' + rawName);
         const snap = await get(userRef);
 
         if (snap.exists()) {
+            // Вход для старых
             if (snap.val().pass !== uPass) return alert("Wrong password!");
         } else {
-            // Если это новый юзер — создаем его и УДАЛЯЕМ инвайт
+            // Регистрация новых
+            const inviteCode = prompt("New account? Enter Invite Code:");
+            const invSnap = await get(ref(db, `invites/${inviteCode}`));
+
+            if (!invSnap.exists()) return alert("Invalid or used invite code!");
+
+            // Фильтр имен: только буквы и цифры
+            if (!/^[a-zA-Z0-9]+$/.test(rawName)) return alert("Only letters and numbers allowed!");
+
+            // Бан админских ников
+            const forbidden = ['admin', 'owner', 'system', 'root'];
+            if (forbidden.some(word => rawName.toLowerCase().includes(word))) return alert("Forbidden name!");
+
             await set(userRef, { pass: uPass });
             await set(ref(db, `invites/${inviteCode}`), null);
         }
@@ -528,3 +526,11 @@ window.setReaction = (emoji) => {
 
     document.getElementById('reactionPicker').style.display = 'none';
 };
+// Разовая акция: создаем ветку и код
+const inviteRef = ref(db, 'invites/');
+get(inviteRef).then((snap) => {
+    if (!snap.exists()) {
+        set(inviteRef, true).then(() => {
+        });
+    }
+});

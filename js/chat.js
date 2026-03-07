@@ -179,7 +179,7 @@ const watchTyping = (dbId) => {
         if (others.length === 0) { indicator.style.display = 'none'; return; }
         const names = others.map(k => '@' + k).join(', ');
         indicator.style.display = 'flex';
-        indicator.querySelector('.typing-text').innerText = `${names} печатает...`;
+        indicator.querySelector('.typing-text').innerText = `${names} is writing...`;
     });
 };
 
@@ -365,7 +365,7 @@ function loadActiveChats() {
                 set(ref(db, `active_chats/${currentUser.replace('@', '')}/${id}/unread`), 0);
                 openChat(info.title);
             };
-            if (currentChatId === info.title) d.classList.add('active');
+            if (currentChatId && currentChatId === info.title) d.classList.add('active');
 
             const avatarEl = makeAvatarEl(null, info.title, 28);
 
@@ -446,7 +446,7 @@ function openChat(id, targetMsgId = null, forceDbId = null) {
             if (!ts) return;
             const diff = Date.now() - ts;
             let label;
-            if (diff < 60000) label = '🟢 online';
+            if (diff < 60000) label = 'online';
             else if (diff < 3600000) label = `${Math.floor(diff / 60000)} min ago`;
             else if (diff < 86400000) label = `${Math.floor(diff / 3600000)}h ago`;
             else label = `${Math.floor(diff / 86400000)}d ago`;
@@ -1070,7 +1070,7 @@ const startRecording = async () => {
             if (recordingSeconds >= 120) stopRecording(); // макс 2 мин
         }, 1000);
     } catch (e) {
-        await showCustomModal('Нет доступа к микрофону');
+        await showCustomModal('No microphone');
     }
 };
 
@@ -1100,7 +1100,7 @@ const stopRecording = async () => {
             set(ref(db, `active_chats/${myKey}/${dbId}/lastMsg`), '🎤 Voice message');
             set(ref(db, `active_chats/${myKey}/${dbId}/lastTime`), Date.now());
         } catch (e) {
-            await showCustomModal('Ошибка загрузки аудио');
+            await showCustomModal('Audio load error');
         } finally {
             btn.style.opacity = '1';
         }
@@ -1291,7 +1291,7 @@ const init = () => {
                         item.className = 'chat-item search-result';
                         const chatTitle = myChats[chatDbId].title;
                         item.innerHTML = `
-                            <div style="font-size:0.8em;color:var(--link);">в ${chatTitle}</div>
+                            <div style="font-size:0.8em;color:var(--link);">in ${chatTitle}</div>
                             <div style="font-weight:bold;">${m.user}:</div>
                             <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${m.text}</div>
                         `;

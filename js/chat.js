@@ -322,7 +322,7 @@ function openChat(id, targetMsgId = null, forceDbId = null) {
             reactionsHtml += '</div>';
 
             const isGroup = currentChatId.startsWith('#');
-            const authorHtml = (isGroup && !isMe && m.user !== lastUser) ? `<div class="msg-name">${m.user}</div>` : '';
+            const authorHtml = '';
 
             wrapper.innerHTML = `
                 <div class="message card">

@@ -352,7 +352,6 @@ function loadActiveChats() {
         const data = snap.val();
         if (!data) return;
 
-        // Сортировка по lastTime desc
         const entries = Object.entries(data)
             .filter(([id]) => id !== SYSTEM_CHAT_ID)
             .sort((a, b) => (b[1].lastTime || 0) - (a[1].lastTime || 0));
@@ -361,7 +360,11 @@ function loadActiveChats() {
             const d = document.createElement('div');
             d.className = 'chat-item';
             d.style.cssText = 'display:flex;align-items:center;gap:10px;position:relative;';
-            d.onclick = () => openChat(info.title);
+            d.onclick = () => {
+                // сбрасываем unread при открытии
+                set(ref(db, `active_chats/${currentUser.replace('@', '')}/${id}/unread`), 0);
+                openChat(info.title);
+            };
             if (currentChatId === info.title) d.classList.add('active');
 
             const avatarEl = makeAvatarEl(null, info.title, 28);
@@ -374,26 +377,39 @@ function loadActiveChats() {
             nameEl.style.cssText = 'font-weight:700;font-size:0.9rem;';
 
             const previewEl = document.createElement('span');
-            previewEl.style.cssText = 'font-size:0.72rem;opacity:0.55;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px;';
+            previewEl.style.cssText = 'font-size:0.72rem;opacity:0.55;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px;';
             if (info.lastMsg) {
-                previewEl.innerText = info.lastMsg.startsWith('IMG_URL:') ? '🖼 Image' : info.lastMsg;
+                previewEl.innerText = info.lastMsg.startsWith('IMG_URL:') ? '🖼 Image' : info.lastMsg.startsWith('AUDIO_URL:') ? '🎤 Voice' : info.lastMsg;
             }
 
             textWrap.appendChild(nameEl);
             textWrap.appendChild(previewEl);
 
-            // Кнопка удалить чат из списка
-            const delBtn = document.createElement('button');
-            delBtn.innerHTML = '✕';
-            delBtn.style.cssText = 'position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-3);font-size:0.75rem;cursor:pointer;padding:2px 5px;opacity:0;transition:0.2s;';
-            delBtn.onclick = async (e) => {
-                e.stopPropagation();
-                if (await showCustomModal(`Удалить ${info.title} из списка?`)) {
-                    remove(ref(db, `active_chats/${currentUser.replace('@', '')}/${id}`));
-                }
-            };
-            d.addEventListener('mouseenter', () => delBtn.style.opacity = '1');
-            d.addEventListener('mouseleave', () => delBtn.style.opacity = '0');
+            // Unread badge
+            if (info.unread && info.unread > 0 && currentChatId !== info.title) {
+                const badge = document.createElement('div');
+                badge.className = 'unread-badge';
+                badge.innerText = info.unread > 99 ? '99+' : info.unread;
+                d.appendChild(avatarEl);
+                d.appendChild(textWrap);
+                d.appendChild(badge);
+            } else {
+                // Кнопка удалить
+                const delBtn = document.createElement('button');
+                delBtn.innerHTML = '✕';
+                delBtn.style.cssText = 'position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-3);font-size:0.75rem;cursor:pointer;padding:2px 5px;opacity:0;transition:0.2s;';
+                delBtn.onclick = async (e) => {
+                    e.stopPropagation();
+                    if (await showCustomModal(`Remove ${info.title} from list?`)) {
+                        remove(ref(db, `active_chats/${currentUser.replace('@', '')}/${id}`));
+                    }
+                };
+                d.addEventListener('mouseenter', () => delBtn.style.opacity = '1');
+                d.addEventListener('mouseleave', () => delBtn.style.opacity = '0');
+                d.appendChild(avatarEl);
+                d.appendChild(textWrap);
+                d.appendChild(delBtn);
+            }
 
             if (!info.title.startsWith('#') && info.title.startsWith('@')) {
                 getAvatar(info.title).then(url => {
@@ -401,9 +417,6 @@ function loadActiveChats() {
                 });
             }
 
-            d.appendChild(avatarEl);
-            d.appendChild(textWrap);
-            d.appendChild(delBtn);
             list.appendChild(d);
         });
     });
@@ -420,6 +433,7 @@ function openChat(id, targetMsgId = null, forceDbId = null) {
     isFirstLoad = true;
 
     document.getElementById('chatTitle').innerText = ' ' + id;
+    document.getElementById('groupMembersBtn').style.display = id.startsWith('#') ? 'flex' : 'none';
 
     // presence label
     const existingLabel = document.getElementById('presenceLabel');
@@ -455,6 +469,15 @@ function openChat(id, targetMsgId = null, forceDbId = null) {
     document.querySelector('.input-row').style.display = isSystemChat ? 'none' : 'flex';
 
     watchTyping(activeChatDbId);
+
+    // Scroll-to-bottom кнопка
+    const box = document.getElementById('chatBox');
+    const scrollBtn = document.getElementById('scrollDownBtn');
+    box.onscroll = () => {
+        const distFromBottom = box.scrollHeight - box.scrollTop - box.clientHeight;
+        scrollBtn.style.display = distFromBottom > 200 ? 'flex' : 'none';
+    };
+    scrollBtn.onclick = () => { box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' }); };
 
     onValue(currentChatRef, (snap) => {
         const box = document.getElementById('chatBox');
@@ -600,6 +623,40 @@ window.scrollToMsg = (msgId) => {
     }
 };
 
+window.openGroupMembers = async () => {
+    if (!currentChatId?.startsWith('#')) return;
+    const dbId = getActiveChatDbId();
+    const snap = await get(ref(db, `groups/${dbId}/members`));
+    const members = snap.val() ? Object.keys(snap.val()) : [];
+    const panel = document.getElementById('groupMembersPanel');
+    const list = document.getElementById('groupMembersList');
+    list.innerHTML = '';
+    members.forEach(m => {
+        const d = document.createElement('div');
+        d.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px;border-bottom:1px solid var(--border);';
+        const av = makeAvatarEl(null, '@' + m, 28);
+        const name = document.createElement('span');
+        name.innerText = '@' + m;
+        name.style.flex = '1';
+        getAvatar('@' + m).then(url => { if (url) av.replaceWith(makeAvatarEl(url, '@' + m, 28)); });
+        d.appendChild(av);
+        d.appendChild(name);
+        if (realUser === '@admin' && m !== currentUser.replace('@', '')) {
+            const kickBtn = document.createElement('button');
+            kickBtn.innerText = 'Kick';
+            kickBtn.style.cssText = 'font-size:0.7rem;padding:3px 8px;border-radius:6px;border:1px solid red;background:none;color:red;cursor:pointer;';
+            kickBtn.onclick = async () => {
+                await remove(ref(db, `groups/${dbId}/members/${m}`));
+                await remove(ref(db, `active_chats/${m}/${dbId}`));
+                d.remove();
+            };
+            d.appendChild(kickBtn);
+        }
+        list.appendChild(d);
+    });
+    panel.classList.toggle('hidden');
+};
+
 // ─── Send ─────────────────────────────────────────────────────────────────────
 
 const sendMsg = async () => {
@@ -649,6 +706,10 @@ const sendMsg = async () => {
     if (!isGroup) {
         set(ref(db, `active_chats/${targetId}/${dbId}/lastMsg`), preview);
         set(ref(db, `active_chats/${targetId}/${dbId}/lastTime`), now);
+        // Инкремент unread у получателя
+        get(ref(db, `active_chats/${targetId}/${dbId}/unread`)).then(s => {
+            set(ref(db, `active_chats/${targetId}/${dbId}/unread`), (s.val() || 0) + 1);
+        });
     }
 
     const isNewChat = !(await get(ref(db, `active_chats/${myKey}/${dbId}`))).exists();

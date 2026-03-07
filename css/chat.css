@@ -65,6 +65,7 @@ i { color: var(--text-1); }
     background: var(--bg);
     min-width: 0;
     height: 100%;
+    position: relative;
 }
 
 /* ─── 4. CARD & SHARED ───────────────────────────────────────────────────────── */
@@ -682,3 +683,21 @@ input, textarea, button, select {
     0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
     30% { transform: translateY(-5px); opacity: 1; }
 }
+
+/* ─── Unread badge ───────────────────────────────────────────────────────────── */
+.unread-badge {
+    background: var(--link);
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 900;
+    min-width: 20px;
+    height: 20px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 5px;
+    flex-shrink: 0;
+}
+
+#groupMembersPanel.hidden { display: none !important; }

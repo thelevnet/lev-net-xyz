@@ -353,8 +353,8 @@ function loadActiveChats() {
         if (!data) return;
 
         const entries = Object.entries(data)
-            .filter(([id]) => id !== SYSTEM_CHAT_ID)
-            .sort((a, b) => (b[1].lastTime || 0) - (a[1].lastTime || 0));
+    .filter(([id, info]) => id !== SYSTEM_CHAT_ID && info.title) // добавь && info.title
+    .sort((a, b) => (b[1].lastTime || 0) - (a[1].lastTime || 0));
 
         entries.forEach(([id, info]) => {
             const d = document.createElement('div');

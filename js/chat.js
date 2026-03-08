@@ -873,6 +873,7 @@ window.upvote = (postId) => {
 };
 
 window.openFeed = () => {
+    document.getElementById('sidebar').classList.add('hidden');
     if (currentChatRef) off(currentChatRef);
     setTyping(false);
     currentChatId = 'GLOBAL_FEED';

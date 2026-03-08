@@ -697,27 +697,30 @@ const sendMsg = async () => {
     push(ref(db, 'messages/' + dbId), msgData);
 
     // Обновляем lastMsg / lastTime для обеих сторон
-    const preview = txt.slice(0, 60);
-    const now = Date.now();
-
     const myKey = currentUser.replace('@', '');
+const preview = txt.slice(0, 60);
+const now = Date.now();
+
+const isNewChat = !(await get(ref(db, `active_chats/${myKey}/${dbId}`))).exists();
+
+if (isNewChat) {
+    if (isGroup) set(ref(db, `groups/${dbId}/members/${myKey}`), true);
+    set(ref(db, `active_chats/${myKey}/${dbId}`), { title: currentChatId, lastMsg: preview, lastTime: now });
+    if (!isGroup) set(ref(db, `active_chats/${targetId}/${dbId}`), { title: currentUser, lastMsg: preview, lastTime: now });
+} else {
     set(ref(db, `active_chats/${myKey}/${dbId}/lastMsg`), preview);
     set(ref(db, `active_chats/${myKey}/${dbId}/lastTime`), now);
     if (!isGroup) {
         set(ref(db, `active_chats/${targetId}/${dbId}/lastMsg`), preview);
         set(ref(db, `active_chats/${targetId}/${dbId}/lastTime`), now);
-        // Инкремент unread у получателя
-        get(ref(db, `active_chats/${targetId}/${dbId}/unread`)).then(s => {
-            set(ref(db, `active_chats/${targetId}/${dbId}/unread`), (s.val() || 0) + 1);
-        });
     }
+}
 
-    const isNewChat = !(await get(ref(db, `active_chats/${myKey}/${dbId}`))).exists();
-    if (isNewChat) {
-        if (isGroup) set(ref(db, `groups/${dbId}/members/${myKey}`), true);
-        set(ref(db, `active_chats/${myKey}/${dbId}`), { title: currentChatId, lastMsg: preview, lastTime: now });
-        if (!isGroup) set(ref(db, `active_chats/${targetId}/${dbId}`), { title: currentUser, lastMsg: preview, lastTime: now });
-    }
+if (!isGroup) {
+    get(ref(db, `active_chats/${targetId}/${dbId}/unread`)).then(s => {
+        set(ref(db, `active_chats/${targetId}/${dbId}/unread`), (s.val() || 0) + 1);
+    });
+}
 
     setTyping(false);
     clearReply();

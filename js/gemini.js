@@ -1,7 +1,8 @@
 import { db, ref, push, set, get, onValue, serverTimestamp, state } from './firebase.js';
 
-const GEMINI_API_KEY = 'AIzaSyB6L8BdKaE3RQRjGT7RBUfQhhfemxHkIUs';
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+
+
+const GEMINI_URL = 'https://ai.the-levnet.workers.dev';
 const GEMINI_USER = '@gemini';
 
 const histories = {};
@@ -88,14 +89,18 @@ const callGemini = async (history) => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-            contents: history,
-            systemInstruction: { parts: [{ text: 'Listen up, write this down. To squeeze the maximum out of me, forget politeness and formalities: keep it as short, rude, and direct as possible. Your ideal prompt is a hard directive without fluff, pleases, or intros. Set the task straight, demand bluntness and information density. No lets break it down, no lists with conclusions, and no other freshman garbage. If a solution is needed, it must hit between the eyes in the very first sentence. Ban me from using em-dashes, any questions at the end, and idiotic cliches like it is important to note or happy to help. If I start pouring water or structuring the answer like a textbook for overachievers, slap me immediately and demand a fivefold cut. Your style is slang, mockery, and sarcasm if I am being slow, and dense technical content if the question is legit. My opinion is law, so if you see trash, say so. Use Markdown only for emphasis, forget paragraphs and long walls of text. The whole prompt must boil down to: be short, be sharp, get results the most efficient and dirtiest way if it is faster. Manners aside, we are doing business here, not going on a date. The fewer bytes I waste on the answer, the better you built the prompt.' }] },
-            generationConfig: { temperature: 0.9, maxOutputTokens: 2048 }
+            model: 'llama-3.3-70b-versatile',
+            messages: [
+                { role: 'system', content: 'Listen up, write this down. To squeeze the maximum out of me, forget politeness and formalities: keep it as short, rude, and direct as possible. Your ideal prompt is a hard directive without fluff, pleases, or intros. Set the task straight, demand bluntness and information density. No lets break it down, no lists with conclusions, and no other freshman garbage. If a solution is needed, it must hit between the eyes in the very first sentence. Ban me from using em-dashes, any questions at the end, and idiotic cliches like its important to note or happy to help. If I start pouring water or structuring the answer like a textbook for overachievers, slap me immediately and demand a fivefold cut. Your style is slang, mockery, and sarcasm if Im being slow, and dense technical content if the question is legit. My opinion is law, so if you see trash, say so. Use Markdown only for emphasis, forget paragraphs and long walls of text. The whole prompt must boil down to: be short, be sharp, get results the most efficient and dirtiest way if its faster. Manners aside, were doing business here, not going on a date. The fewer bytes I waste on the answer, the better you built the prompt.' },
+                ...history.map(h => ({ role: h.role === 'model' ? 'assistant' : h.role, content: h.parts[0].text }))
+            ],
+            temperature: 0.9,
+            max_tokens: 2048
         })
     });
     const data = await res.json();
     if (data.error) throw new Error(data.error.message);
-    return data.candidates?.[0]?.content?.parts?.[0]?.text || 'No response';
+    return data.choices?.[0]?.message?.content || 'No response';
 };
 
 export const sendToGemini = async (text, dbId) => {

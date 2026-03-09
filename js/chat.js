@@ -66,6 +66,21 @@ function openChat(id, targetMsgId = null, forceDbId = null) {
     };
     scrollBtn.onclick = () => box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
 
+    // event delegation — replaces all inline onclick in messages
+    box.onclick = (e) => {
+        const img = e.target.closest('[data-open-img]');
+        if (img) { window.openImg(img.dataset.openImg); return; }
+        const iframe = e.target.closest('[data-open-iframe]');
+        if (iframe) { window.openIframe(iframe.dataset.openIframe); return; }
+        const mention = e.target.closest('[data-open-chat]');
+        if (mention) { window.openChat(mention.dataset.openChat); return; }
+        const audio = e.target.closest('[data-audio]');
+        if (audio) { window.toggleAudio(audio.dataset.audio); return; }
+        const scrollTo = e.target.closest('[data-scroll-to]');
+        if (scrollTo) { window.scrollToMsg(scrollTo.dataset.scrollTo); return; }
+        document.getElementById('msgMenu').style.display = 'none';
+    };
+
     onValue(state.currentChatRef, (snap) => {
         box.innerHTML = '';
         const data = snap.val();
@@ -98,50 +113,25 @@ function openChat(id, targetMsgId = null, forceDbId = null) {
 
             let content = m.text || '';
             if (content.startsWith('IMG_URL:')) {
-                const url = content.replace('IMG_URL:', '');
-                // sanitize url - only allow http/https
-                const safeUrl = /^https?:\/\//.test(url) ? url : '';
-                content = safeUrl ? `<img src="${safeUrl}" style="max-width:100%;border-radius:8px;cursor:pointer;display:block;" onclick="window.openImg('${safeUrl}')">` : '';
+                const url = /^https?:\/\//.test(content.replace('IMG_URL:', '')) ? content.replace('IMG_URL:', '') : '';
+                content = url ? `<img src="${url}" style="max-width:100%;border-radius:8px;cursor:pointer;display:block;" data-open-img="${url}">` : '';
             } else if (content.startsWith('AUDIO_URL:')) {
                 const url = content.replace('AUDIO_URL:', '');
                 const pid = 'ap_' + msgKey;
                 content = `<div class="tg-voice" id="${pid}" data-url="${url}">
-                    <button class="tg-play-btn" onclick="window.toggleAudio('${pid}')"><i class="fa-solid fa-play"></i></button>
+                    <button class="tg-play-btn" data-audio="${pid}"><i class="fa-solid fa-play"></i></button>
                     <div class="tg-wave">${Array.from({length:30},(_,i)=>`<div class="tg-bar" style="height:${8+Math.abs(Math.sin(i*0.8)*18)|0}px"></div>`).join('')}</div>
                 </div>`;
             } else {
-                // 1. Extract @mentions and URLs before markdown to protect them
-                const placeholders = {};
-                let pi = 0;
-                // protect URLs — replace with placeholder, re-inject after MD parse
-                let safe = content.replace(/(https?:\/\/[^\s<]+)/g, (url) => {
-                    const key = `\x00URL${pi++}\x00`;
-                    placeholders[key] = `<a href="${url}" target="_blank" rel="noopener noreferrer" style="color:inherit;text-decoration:underline;">${url}</a><div style="position:relative;margin-top:6px;border-radius:8px;overflow:hidden;background:#fff;"><iframe src="${url}" style="width:100%;height:200px;border:none;display:block;" loading="lazy" sandbox="allow-scripts allow-same-origin allow-forms"></iframe><div onclick="window.openIframe('${url}')" style="position:absolute;top:0;left:0;width:100%;height:100%;cursor:pointer;z-index:1;"></div></div>`;
-                    return key;
-                });
-                // protect @mentions
-                safe = safe.replace(/(@[a-zA-Z0-9_]+)/g, (mention) => {
-                    const key = `\x00MENTION${pi++}\x00`;
-                    placeholders[key] = `<span class="mention" style="cursor:pointer" onclick="window.openChat('${mention}')">${mention}</span>`;
-                    return key;
-                });
-                // run marked (already loaded via CDN)
-                if (window.marked) {
-                    safe = window.marked.parse(safe, { breaks: true, gfm: true });
-                } else {
-                    safe = safe.replace(/\n/g, '<br>');
-                }
-                // sanitize with DOMPurify, allow our inline handlers via ADD_ATTR
-                if (window.DOMPurify) {
-                    safe = window.DOMPurify.sanitize(safe, {
-                        ADD_ATTR: ['onclick', 'target', 'loading', 'sandbox'],
-                        ADD_TAGS: ['iframe'],
-                    });
-                }
-                // restore placeholders
-                Object.entries(placeholders).forEach(([key, val]) => {
-                    safe = safe.replace(key, val);
-                });
+                // 1. purify raw input — kills all scripts/styles/buttons
+                let safe = window.DOMPurify ? window.DOMPurify.sanitize(content, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] }) : content.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+                // 2. markdown on clean plain text
+                safe = window.marked ? window.marked.parse(safe, { breaks: true, gfm: true }) : safe.replace(/\n/g, '<br>');
+                // 3. inject @mentions and URLs — our trusted code, runs after purify
+                safe = safe.replace(/(@[a-zA-Z0-9_]+)/g, m => `<span class="mention" data-open-chat="${m}" style="cursor:pointer">${m}</span>`);
+                safe = safe.replace(/<a href="(https?:\/\/[^"]+)"[^>]*>([^<]+)<\/a>/g, (match, url) => {
+    return `${match}<div style="position:relative;margin-top:6px;border-radius:8px;overflow:hidden;background:#fff;"><iframe src="${url}" style="width:100%;height:200px;border:none;display:block;" loading="lazy" sandbox="allow-scripts allow-same-origin allow-forms"></iframe><div data-open-iframe="${url}" style="position:absolute;top:0;left:0;width:100%;height:100%;cursor:pointer;z-index:1;"></div></div>`;
+});
                 content = safe;
             }
 
@@ -149,7 +139,7 @@ function openChat(id, targetMsgId = null, forceDbId = null) {
             if (m.replyTo) {
                 const rt = m.replyTo;
                 const rText = rt.text?.startsWith('IMG_URL:') ? '🖼 Image' : (rt.text || '').slice(0, 80);
-                replyHtml = `<div class="reply-quote" onclick="window.scrollToMsg('${rt.id}')">${rt.user}: ${rText}</div>`;
+                replyHtml = `<div class="reply-quote" data-scroll-to="${rt.id}">${rt.user}: ${rText}</div>`;
             }
 
             let touchTimer;
@@ -178,7 +168,8 @@ function openChat(id, targetMsgId = null, forceDbId = null) {
                 const nameEl = document.createElement('span');
                 nameEl.style.cssText = 'font-size:0.72rem;font-weight:900;color:var(--link);';
                 nameEl.innerText = m.user;
-                avatarRow.onclick = (e) => { e.stopPropagation(); openChat(m.user); };
+                avatarRow.dataset.openChat = m.user;
+                avatarRow.style.cursor = 'pointer';
                 avatarRow.appendChild(avatarEl);
                 avatarRow.appendChild(nameEl);
                 box.appendChild(avatarRow);
@@ -358,7 +349,6 @@ window.openImg = (url) => {
     overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
     document.body.appendChild(overlay);
 };
-
 // Feed
 
 window.renderComments = (postId, comments, parentId = 'root', depth = 0) => {

@@ -1,6 +1,6 @@
 import { db, ref, push, set, get, onValue, serverTimestamp, state } from './firebase.js';
 
-const GEMINI_API_KEY = 'AIzaSyBkzFjQ-LcI1oX8bCLlyUDV25MG4hLORGc';
+const GEMINI_API_KEY = 'AIzaSyB6L8BdKaE3RQRjGT7RBUfQhhfemxHkIUs';
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
 const GEMINI_USER = '@gemini';
 

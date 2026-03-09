@@ -34,6 +34,7 @@ const init = () => {
     });
 
     document.getElementById('openSystemBtn').onclick = () => window.openChat('System', null, SYSTEM_CHAT_ID);
+    document.getElementById('openGeminiBtn').onclick = () => import('./gemini.js').then(m => m.openGeminiFolder());
     document.getElementById('replyBarClose').onclick = () => import('./ui.js').then(m => m.clearReply());
 
     // Textarea

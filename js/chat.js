@@ -1,6 +1,7 @@
 import { db, ref, push, onValue, set, get, serverTimestamp, off, remove, state, SYSTEM_CHAT_ID, buildChatDbId, buildChatDbIdFor, getActiveChatDbId, getAvatar, makeAvatarEl } from './firebase.js';
 import { showCustomModal, setTyping, watchTyping, setReply, clearReply, showCallButton } from './ui.js';
 import { translateText, uploadImg } from './media.js';
+import { isGeminiChat, sendToGemini, handleGeminiMention } from './gemini.js';
 
 // openChat
 
@@ -13,6 +14,15 @@ function openChat(id, targetMsgId = null, forceDbId = null) {
     state.isFirstLoad = true;
 
     document.getElementById('chatTitle').innerText = ' ' + id;
+
+    // For gemini chats load real title from firebase
+    if (id.startsWith('gemini_chat_')) {
+        const myKey = state.currentUser?.replace('@', '');
+        get(ref(db, `active_chats/${myKey}/${id}/title`)).then(snap => {
+            const t = snap.val();
+            if (t && !t.startsWith('gemini_chat_')) document.getElementById('chatTitle').childNodes[0].textContent = ' ' + t;
+        });
+    }
     document.getElementById('groupMembersBtn').style.display = id.startsWith('#') ? 'flex' : 'none';
     showCallButton(id);
 
@@ -41,7 +51,7 @@ function openChat(id, targetMsgId = null, forceDbId = null) {
 
     if (window.innerWidth <= 600) document.getElementById('sidebar').classList.add('hidden');
 
-    state.activeChatDbId = forceDbId || buildChatDbId(id);
+    state.activeChatDbId = forceDbId || (id.startsWith('gemini_chat_') ? id : buildChatDbId(id));
     state.currentChatRef = ref(db, 'messages/' + state.activeChatDbId);
 
     const isSystemChat = state.activeChatDbId === SYSTEM_CHAT_ID && state.realUser !== '@admin';
@@ -89,7 +99,9 @@ function openChat(id, targetMsgId = null, forceDbId = null) {
             let content = m.text || '';
             if (content.startsWith('IMG_URL:')) {
                 const url = content.replace('IMG_URL:', '');
-                content = `<img src="${url}" style="max-width:100%;border-radius:8px;cursor:pointer;display:block;" onclick="window.openImg('${url}')">`;
+                // sanitize url - only allow http/https
+                const safeUrl = /^https?:\/\//.test(url) ? url : '';
+                content = safeUrl ? `<img src="${safeUrl}" style="max-width:100%;border-radius:8px;cursor:pointer;display:block;" onclick="window.openImg('${safeUrl}')">` : '';
             } else if (content.startsWith('AUDIO_URL:')) {
                 const url = content.replace('AUDIO_URL:', '');
                 const pid = 'ap_' + msgKey;
@@ -98,9 +110,39 @@ function openChat(id, targetMsgId = null, forceDbId = null) {
                     <div class="tg-wave">${Array.from({length:30},(_,i)=>`<div class="tg-bar" style="height:${8+Math.abs(Math.sin(i*0.8)*18)|0}px"></div>`).join('')}</div>
                 </div>`;
             } else {
-                content = content
-                    .replace(/(https?:\/\/[^\s]+)/g, url => `<a href="${url}" target="_blank" style="color:inherit;text-decoration:underline;">${url}</a><div style="position:relative;margin-top:6px;border-radius:8px;overflow:hidden;background:#fff;"><iframe src="${url}" style="width:100%;height:200px;border:none;display:block;" loading="lazy" sandbox="allow-scripts allow-same-origin allow-forms"></iframe><div onclick="window.openIframe('${url}')" style="position:absolute;top:0;left:0;width:100%;height:100%;cursor:pointer;z-index:1;"></div></div>`)
-                    .replace(/(@[a-zA-Z0-9_]+)/g, '<span class="mention" style="cursor:pointer" onclick="window.openChat(\'$1\')">$1</span>');
+                // 1. Extract @mentions and URLs before markdown to protect them
+                const placeholders = {};
+                let pi = 0;
+                // protect URLs — replace with placeholder, re-inject after MD parse
+                let safe = content.replace(/(https?:\/\/[^\s<]+)/g, (url) => {
+                    const key = `\x00URL${pi++}\x00`;
+                    placeholders[key] = `<a href="${url}" target="_blank" rel="noopener noreferrer" style="color:inherit;text-decoration:underline;">${url}</a><div style="position:relative;margin-top:6px;border-radius:8px;overflow:hidden;background:#fff;"><iframe src="${url}" style="width:100%;height:200px;border:none;display:block;" loading="lazy" sandbox="allow-scripts allow-same-origin allow-forms"></iframe><div onclick="window.openIframe('${url}')" style="position:absolute;top:0;left:0;width:100%;height:100%;cursor:pointer;z-index:1;"></div></div>`;
+                    return key;
+                });
+                // protect @mentions
+                safe = safe.replace(/(@[a-zA-Z0-9_]+)/g, (mention) => {
+                    const key = `\x00MENTION${pi++}\x00`;
+                    placeholders[key] = `<span class="mention" style="cursor:pointer" onclick="window.openChat('${mention}')">${mention}</span>`;
+                    return key;
+                });
+                // run marked (already loaded via CDN)
+                if (window.marked) {
+                    safe = window.marked.parse(safe, { breaks: true, gfm: true });
+                } else {
+                    safe = safe.replace(/\n/g, '<br>');
+                }
+                // sanitize with DOMPurify, allow our inline handlers via ADD_ATTR
+                if (window.DOMPurify) {
+                    safe = window.DOMPurify.sanitize(safe, {
+                        ADD_ATTR: ['onclick', 'target', 'loading', 'sandbox'],
+                        ADD_TAGS: ['iframe'],
+                    });
+                }
+                // restore placeholders
+                Object.entries(placeholders).forEach(([key, val]) => {
+                    safe = safe.replace(key, val);
+                });
+                content = safe;
             }
 
             let replyHtml = '';
@@ -202,6 +244,24 @@ export const sendMsg = async () => {
     const inp = document.getElementById('msgInput');
     let txt = inp.value.trim();
     if (!txt || !state.currentChatId) return;
+
+    // Gemini personal chat
+    if (isGeminiChat(state.currentChatId)) {
+        inp.value = '';
+        inp.style.height = '50px';
+        document.getElementById('sendBtn').classList.remove('active');
+        await sendToGemini(txt, state.activeChatDbId);
+        return;
+    }
+
+    // @gemini mention in any chat
+    if (/^@gemini\s+/i.test(txt)) {
+        inp.value = '';
+        inp.style.height = '50px';
+        document.getElementById('sendBtn').classList.remove('active');
+        await handleGeminiMention(txt, state.activeChatDbId);
+        return;
+    }
 
     if (state.currentChatId === 'GLOBAL_FEED') {
         push(ref(db, 'feed'), { user: state.currentUser, text: txt, votes: 0, timestamp: serverTimestamp() });

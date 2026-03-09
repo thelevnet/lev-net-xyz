@@ -75,7 +75,7 @@ export const updateSettingsAvatar = (url) => {
 
 export const showCallButton = (chatId) => {
     document.getElementById('callHeaderBtn')?.remove();
-    if (!chatId || chatId.startsWith('#') || chatId === 'System' || chatId === 'GLOBAL_FEED') return;
+    if (!chatId || chatId.startsWith('#') || chatId === 'System' || chatId === 'GLOBAL_FEED' || chatId === '@gemini' || chatId.startsWith('gemini_chat_')) return;
     const btn = document.createElement('button');
     btn.id = 'callHeaderBtn';
     btn.className = 'card';

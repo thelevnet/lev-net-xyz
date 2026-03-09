@@ -10,7 +10,7 @@ export function loadActiveChats() {
         if (!data) return;
 
         const entries = Object.entries(data)
-            .filter(([id, info]) => id !== SYSTEM_CHAT_ID && info.title)
+            .filter(([id, info]) => id !== SYSTEM_CHAT_ID && info.title && !id.startsWith('gemini_chat_'))
             .sort((a, b) => (b[1].lastTime || 0) - (a[1].lastTime || 0));
 
         entries.forEach(([id, info]) => {

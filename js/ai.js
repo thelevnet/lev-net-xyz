@@ -1,9 +1,7 @@
 import { db, ref, push, set, get, onValue, serverTimestamp, state } from './firebase.js';
 
-
-
-const GEMINI_URL = 'https://ai.the-levnet.workers.dev';
-const GEMINI_USER = '@gemini';
+const AI_URL = 'https://ai.the-levnet.workers.dev';
+const AI_USER = '@ai';
 
 const histories = {};
 const getHistory = (dbId) => { if (!histories[dbId]) histories[dbId] = []; return histories[dbId]; };
@@ -14,7 +12,7 @@ export const createGeminiChat = async () => {
     const myKey = state.currentUser.replace('@', '');
     const chatId = 'gemini_chat_' + Date.now();
     await set(ref(db, `active_chats/${myKey}/${chatId}`), {
-        title: chatId, lastMsg: 'New Gemini chat', lastTime: Date.now(), isGemini: true
+        title: chatId, lastMsg: 'New AI chat', lastTime: Date.now(), isGemini: true
     });
     return chatId;
 };
@@ -31,7 +29,7 @@ export const openGeminiFolder = () => {
     folder.innerHTML = `
         <div style="display:flex;align-items:center;gap:10px;padding:15px;border-bottom:2px solid var(--border);flex-shrink:0;">
             <button onclick="document.getElementById('geminiFolderPanel').remove()" style="background:none;border:none;cursor:pointer;font-size:1rem;color:var(--text-3);">X</button>
-            <span style="font-weight:900;font-size:0.95rem;"><i class="fa-solid fa-robot" style="color:var(--link);margin-right:6px;"></i>Gemini Chats</span>
+            <span style="font-weight:900;font-size:0.95rem;"><i class="fa-solid fa-robot" style="color:var(--link);margin-right:6px;"></i>AI Chats</span>
             <button id="newGeminiChatBtn" style="margin-left:auto;background:var(--link);color:#fff;border:none;border-radius:8px;padding:5px 10px;cursor:pointer;font-size:0.8rem;font-weight:bold;">+ New</button>
         </div>
         <div id="geminiChatList" style="overflow-y:auto;flex:1;padding:8px;"></div>
@@ -84,8 +82,8 @@ export const openGeminiFolder = () => {
     });
 };
 
-const callGemini = async (history) => {
-    const res = await fetch(GEMINI_URL, {
+const callAI = async (history) => {
+    const res = await fetch(AI_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -112,56 +110,51 @@ export const sendToGemini = async (text, dbId) => {
     set(ref(db, `active_chats/${myKey}/${dbId}/lastTime`), Date.now());
     history.push({ role: 'user', parts: [{ text }] });
 
-    const typingRef = push(ref(db, 'messages/' + dbId), { user: GEMINI_USER, text: '...', timestamp: serverTimestamp() });
+    const typingRef = push(ref(db, 'messages/' + dbId), { user: AI_USER, text: '...', timestamp: serverTimestamp() });
     try {
-        const reply = await callGemini(history);
+        const reply = await callAI(history);
         history.push({ role: 'model', parts: [{ text: reply }] });
         set(typingRef, null);
-        push(ref(db, 'messages/' + dbId), { user: GEMINI_USER, text: reply, timestamp: serverTimestamp() });
+        push(ref(db, 'messages/' + dbId), { user: AI_USER, text: reply, timestamp: serverTimestamp() });
         set(ref(db, `active_chats/${myKey}/${dbId}/lastMsg`), '[AI] ' + reply.slice(0, 55));
         set(ref(db, `active_chats/${myKey}/${dbId}/lastTime`), Date.now());
 
-        // Generate chat name after first exchange
         if (history.length === 2) {
-            const nameRes = await callGemini([
+            const name = (await callAI([
                 { role: 'user', parts: [{ text: `Give this conversation a short title (max 4 words, no quotes): "${text}"` }] }
-            ]);
-            const name = nameRes.trim().replace(/^["']|["']$/g, '').slice(0, 40);
+            ])).trim().replace(/^["']|["']$/g, '').slice(0, 40);
             set(ref(db, `active_chats/${myKey}/${dbId}/title`), name);
-            // update chatTitle in header if this chat is open
-            if (state.currentChatId === dbId) {
-                document.getElementById('chatTitle').childNodes[0].textContent = ' ' + name;
-            }
+            if (state.currentChatId === dbId) document.getElementById('chatTitle').childNodes[0].textContent = ' ' + name;
         }
     } catch (err) {
         set(typingRef, null);
-        push(ref(db, 'messages/' + dbId), { user: GEMINI_USER, text: `Error: ${err.message}`, timestamp: serverTimestamp() });
+        push(ref(db, 'messages/' + dbId), { user: AI_USER, text: `Error: ${err.message}`, timestamp: serverTimestamp() });
     }
 };
 
 export const handleGeminiMention = async (text, dbId) => {
-    const query = text.replace(/^@gemini\s*/i, '').trim();
+    const query = text.replace(/^@ai\s*/i, '').trim();
     if (!query) return;
 
     const history = getHistory('mention_' + dbId);
     history.push({ role: 'user', parts: [{ text: query }] });
 
-    const typingRef = push(ref(db, 'messages/' + dbId), { user: GEMINI_USER, text: '...', timestamp: serverTimestamp() });
+    const typingRef = push(ref(db, 'messages/' + dbId), { user: AI_USER, text: '...', timestamp: serverTimestamp() });
     try {
-        const reply = await callGemini(history);
+        const reply = await callAI(history);
         history.push({ role: 'model', parts: [{ text: reply }] });
         set(typingRef, null);
-        push(ref(db, 'messages/' + dbId), { user: GEMINI_USER, text: reply, timestamp: serverTimestamp() });
+        push(ref(db, 'messages/' + dbId), { user: AI_USER, text: reply, timestamp: serverTimestamp() });
         const snap = await get(ref(db, `messages/${dbId}`));
         if (snap.val()) {
             const users = [...new Set(Object.values(snap.val()).map(m => m.user?.replace('@', '')).filter(Boolean))];
             users.forEach(u => {
-                set(ref(db, `active_chats/${u}/${dbId}/lastMsg`), '[AI] Gemini replied');
+                set(ref(db, `active_chats/${u}/${dbId}/lastMsg`), '[AI] replied');
                 set(ref(db, `active_chats/${u}/${dbId}/lastTime`), Date.now());
             });
         }
     } catch (err) {
         set(typingRef, null);
-        push(ref(db, 'messages/' + dbId), { user: GEMINI_USER, text: `Error: ${err.message}`, timestamp: serverTimestamp() });
+        push(ref(db, 'messages/' + dbId), { user: AI_USER, text: `Error: ${err.message}`, timestamp: serverTimestamp() });
     }
 };

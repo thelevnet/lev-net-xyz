@@ -1,7 +1,7 @@
 import { db, ref, push, onValue, set, get, serverTimestamp, off, remove, state, SYSTEM_CHAT_ID, buildChatDbId, buildChatDbIdFor, getActiveChatDbId, getAvatar, makeAvatarEl } from './firebase.js';
 import { showCustomModal, setTyping, watchTyping, setReply, clearReply, showCallButton } from './ui.js';
 import { translateText, uploadImg } from './media.js';
-import { isGeminiChat, sendToGemini, handleGeminiMention } from './gemini.js';
+import { isGeminiChat, sendToGemini, handleGeminiMention } from './ai.js';
 
 // openChat
 
@@ -246,7 +246,7 @@ export const sendMsg = async () => {
     }
 
     // @gemini mention in any chat
-    if (/^@gemini\s+/i.test(txt)) {
+    if (/^@ai\s+/i.test(txt)) {
         inp.value = '';
         inp.style.height = '50px';
         document.getElementById('sendBtn').classList.remove('active');

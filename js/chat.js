@@ -111,6 +111,9 @@ function openChat(id, targetMsgId = null, forceDbId = null) {
             wrapper.className = `message-wrapper ${isMe ? 'sent' : 'received'} ${m.user === '@admin' ? 'admin-msg' : ''}`;
             wrapper.id = 'msg-' + msgKey;
 
+            const isSelfChat = state.currentChatId === state.currentUser;
+            const isGroupChat = state.currentChatId?.startsWith('#');
+
             let content = m.text || '';
             if (content.startsWith('IMG_URL:')) {
                 const url = /^https?:\/\//.test(content.replace('IMG_URL:', '')) ? content.replace('IMG_URL:', '') : '';
@@ -122,18 +125,33 @@ function openChat(id, targetMsgId = null, forceDbId = null) {
                     <button class="tg-play-btn" data-audio="${pid}"><i class="fa-solid fa-play"></i></button>
                     <div class="tg-wave">${Array.from({length:30},(_,i)=>`<div class="tg-bar" style="height:${8+Math.abs(Math.sin(i*0.8)*18)|0}px"></div>`).join('')}</div>
                 </div>`;
+            } else if (isSelfChat) {
+                // Self chat: allow HTML + JS but sandboxed (no access to parent window/localStorage/firebase)
+                const sanitized = window.DOMPurify ? window.DOMPurify.sanitize(content, {
+                    ALLOWED_TAGS: ['b','i','em','strong','s','del','code','pre','ul','ol','li','p','br','a','blockquote','h1','h2','h3','h4','img','span','div','table','thead','tbody','tr','th','td','button','input','script','style'],
+                    ALLOWED_ATTR: ['href','target','rel','src','style','class','type','onclick','id'],
+                    FORCE_BODY: true,
+                }) : content;
+                // wrap in isolated iframe — sandbox allows scripts but NOT same-origin (no parent access)
+                const blob = new Blob([`<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{margin:8px;font-family:inherit;color:#fff;background:transparent;}</style></head><body>${sanitized}</body></html>`], { type: 'text/html' });
+                const blobUrl = URL.createObjectURL(blob);
+                content = `<iframe src="${blobUrl}" sandbox="allow-scripts allow-forms allow-modals" style="width:100%;min-height:60px;border:none;border-radius:8px;background:transparent;" onload="this.style.height=(this.contentDocument.body.scrollHeight+16)+'px'"></iframe>`;
             } else {
-                // 1. purify raw input — kills all scripts/styles/buttons
-                let safe = window.DOMPurify ? window.DOMPurify.sanitize(content, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] }) : content.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-                // 2. markdown on clean plain text
-                safe = window.marked ? window.marked.parse(safe, { breaks: true, gfm: true }) : safe.replace(/\n/g, '<br>');
-                // 3. inject @mentions and URLs — our trusted code, runs after purify
+                // Regular chat: HTML allowed but NO scripts, style only on element level
+                const sanitized = window.DOMPurify ? window.DOMPurify.sanitize(content, {
+                    ALLOWED_TAGS: ['b','i','em','strong','s','del','code','pre','ul','ol','li','p','br','a','blockquote','h1','h2','h3','h4','img','span','div','table','thead','tbody','tr','th','td'],
+                    ALLOWED_ATTR: ['href','target','rel','src','style','class'],
+                    FORBID_TAGS: ['script','style','iframe','form','input','button','object','embed'],
+                    FORBID_ATTR: ['onclick','onload','onerror','onmouseover','onfocus','onblur','onchange','onsubmit'],
+                }) : content;
+                let safe = window.marked ? window.marked.parse(sanitized, { breaks: true, gfm: true }) : sanitized.replace(/\n/g, '<br>');
                 safe = safe.replace(/(@[a-zA-Z0-9_]+)/g, m => `<span class="mention" data-open-chat="${m}" style="cursor:pointer">${m}</span>`);
-                safe = safe.replace(/<a href="(https?:\/\/[^"]+)"[^>]*>([^<]+)<\/a>/g, (match, url) => {
-    return `${match}<div style="position:relative;margin-top:6px;border-radius:8px;overflow:hidden;background:#fff;"><iframe src="${url}" style="width:100%;height:200px;border:none;display:block;" loading="lazy" sandbox="allow-scripts allow-same-origin allow-forms"></iframe><div data-open-iframe="${url}" style="position:absolute;top:0;left:0;width:100%;height:100%;cursor:pointer;z-index:1;"></div></div>`;
-});
+                safe = safe.replace(/<a href="(https?:\/\/[^"]+)"[^>]*>([^<]+)<\/a>/g, (match, url) =>
+                    `${match}<div style="position:relative;margin-top:6px;border-radius:8px;overflow:hidden;background:#fff;"><iframe src="${url}" style="width:100%;height:200px;border:none;display:block;" loading="lazy" sandbox="allow-scripts allow-same-origin allow-forms"></iframe><div data-open-iframe="${url}" style="position:absolute;top:0;left:0;width:100%;height:100%;cursor:pointer;z-index:1;"></div></div>`
+                );
                 content = safe;
             }
+
 
             let replyHtml = '';
             if (m.replyTo) {
@@ -246,7 +264,7 @@ export const sendMsg = async () => {
     }
 
     // @gemini mention in any chat
-    if (/^@ai\s+/i.test(txt)) {
+    if (/^@gemini\s+/i.test(txt)) {
         inp.value = '';
         inp.style.height = '50px';
         document.getElementById('sendBtn').classList.remove('active');
@@ -349,6 +367,7 @@ window.openImg = (url) => {
     overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
     document.body.appendChild(overlay);
 };
+
 // Feed
 
 window.renderComments = (postId, comments, parentId = 'root', depth = 0) => {

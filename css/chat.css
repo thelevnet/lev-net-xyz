@@ -88,19 +88,20 @@ button.card:active, .chat-item:active {
 .Header {
     display: flex;
     align-items: center;
-    padding: 1rem 0;
+    padding: 0.5rem 1rem;
     border-bottom: 2px solid var(--border);
     background: var(--surface);
     flex-shrink: 0;
 }
 
-.Header h1 { flex: 1; font-size: 1.2rem; font-weight: 900; }
-.Header .card { margin-left: 10px; }
+.Header h1 { flex: 1; font-size: 1.2rem; font-weight: 900; margin-left: 10px; }
+.Header .card { margin-left: 0; }
+.Header #headerActions .card { margin-left: 10px; }
 .Header button i { color: var(--text-1) !important; font-size: 1.1rem; }
 .Header .card:hover i { color: var(--link) !important; }
 
 #chatTitle { color: var(--link); }
-#menuToggle, #themeToggle, #logoutBtn, #settingsBtn, #pushNotifyBtn { cursor: pointer; border: 0; box-shadow: none; }
+#menuToggle, #themeToggle, #logoutBtn, #pushNotifyBtn { cursor: pointer; border: 0; box-shadow: none; }
 #menuToggle:active, #themeToggle:active, #logoutBtn:active { transform: none; }
 
 /* ─── 6. SIDEBAR ─────────────────────────────────────────────────────────────── */
@@ -304,12 +305,9 @@ button.card:active, .chat-item:active {
 
 #sendBtn {
     width: 50px;
-    background: var(--secondary);
     color: white;
     border: 2px solid var(--border);
     cursor: not-allowed;
-    opacity: 0.4;
-    filter: grayscale(0.5);
     transition: all 0.2s ease;
 }
 
@@ -319,7 +317,6 @@ button.card:active, .chat-item:active {
     background: var(--link);
     cursor: pointer;
     box-shadow: 0 0 10px color-mix(in srgb, var(--link) 40%, transparent);
-    transform: scale(1.05);
 }
 
 #sendBtn.active:active { transform: translate(2px, 2px) scale(1); }

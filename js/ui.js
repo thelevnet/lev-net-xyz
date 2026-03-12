@@ -83,7 +83,7 @@ export const showCallButton = (chatId) => {
     btn.innerHTML = '<i class="fa-solid fa-phone"></i>';
     btn.title = 'Voice call';
     btn.onclick = () => window.callStart(chatId);
-    document.querySelector('.Header')?.insertBefore(btn, document.getElementById('settingsBtn'));
+    document.getElementById('headerActions')?.appendChild(btn);
 };
 
 // Proceed (auth success)

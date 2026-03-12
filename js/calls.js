@@ -25,9 +25,9 @@ export function injectCallUI() {
             <div id="callStatusEl" style="font-size:0.85rem;opacity:0.6;"></div>
             <div id="callTimerEl" style="font-size:1.1rem;font-weight:bold;display:none;font-variant-numeric:tabular-nums;"></div>
             <audio id="remoteAudio" autoplay></audio>
-            <video id="remoteVideo" autoplay playsinline style="display:none;width:320px;height:180px;border-radius:12px;object-fit:cover;border:2px solid rgba(255,255,255,0.15);"></video>
-            <video id="localVideo" autoplay playsinline muted style="display:none;width:110px;height:62px;border-radius:8px;object-fit:cover;position:absolute;bottom:130px;right:16px;border:2px solid rgba(255,255,255,0.2);"></video>
-            <div style="display:flex;gap:14px;align-items:center;">
+            <video id="remoteVideo" autoplay playsinline style="display:none;width:100%;height:100%;object-fit:cover;position:absolute;inset:0;z-index:-1;transform:scaleX(-1);"></video>
+            <video id="localVideo" autoplay playsinline muted style="display:none;width:130px;height:73px;border-radius:10px;object-fit:cover;position:absolute;top:20px;right:20px;border:2px solid rgba(255,255,255,0.2);transform:scaleX(-1);"></video>
+            <div id="callControls" style="display:flex;gap:14px;align-items:center;transition:transform 0.3s ease;">
                 <button id="callMuteBtn" onclick="window.callToggleMute()" style="width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,0.15);border:none;cursor:pointer;color:#fff;font-size:1rem;"><i class="fa-solid fa-microphone"></i></button>
                 <button onclick="window.callEnd()" style="width:62px;height:62px;border-radius:50%;background:#e53935;border:none;cursor:pointer;color:#fff;font-size:1.3rem;"><i class="fa-solid fa-phone-slash"></i></button>
                 <button id="callVideoBtn" onclick="window.callToggleVideo()" style="width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,0.15);border:none;cursor:pointer;color:#fff;font-size:1rem;"><i class="fa-solid fa-video-slash"></i></button>
@@ -94,6 +94,10 @@ const cleanup = () => {
     const te = document.getElementById('callTimerEl');
     if (te) { te.style.display = 'none'; te.innerText = ''; }
     document.getElementById('callOverlay').style.display = 'none';
+    document.getElementById('callOverlay').style.background = 'rgba(0,0,0,0.88)';
+    document.getElementById('callControls').style.transform = 'translateY(0)';
+    document.getElementById('remoteVideo').style.display = 'none';
+    document.getElementById('localVideo').style.display = 'none';
     document.getElementById('incomingCallNotif').style.display = 'none';
 };
 
@@ -108,6 +112,8 @@ const setupPC = () => {
             const v = document.getElementById('remoteVideo');
             v.srcObject = remoteStream;
             v.style.display = 'block';
+            document.getElementById('callOverlay').style.background = 'black';
+            document.getElementById('callControls').style.transform = 'translateY(100px)';
         }
     };
     pc.onconnectionstatechange = () => {
@@ -204,9 +210,12 @@ window.callToggleVideo = async () => {
         pc.getSenders().forEach(s => { if (s.track?.kind === 'video') pc.removeTrack(s); });
         document.getElementById('localVideo').style.display = 'none';
         document.querySelector('#callVideoBtn i').className = 'fa-solid fa-video-slash';
+        if (document.getElementById('remoteVideo').style.display !== 'block') {
+            document.getElementById('callControls').style.transform = 'translateY(0)';
+        }
     } else {
         try {
-            const vs = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 360 } });
+            const vs = await navigator.mediaDevices.getUserMedia({ video: { width: 1280, height: 720 } });
             const nvt = vs.getVideoTracks()[0];
             localStream.addTrack(nvt);
             pc.addTrack(nvt, localStream);
@@ -214,6 +223,7 @@ window.callToggleVideo = async () => {
             lv.srcObject = localStream;
             lv.style.display = 'block';
             document.querySelector('#callVideoBtn i').className = 'fa-solid fa-video';
+            document.getElementById('callControls').style.transform = 'translateY(100px)';
         } catch {}
     }
 };

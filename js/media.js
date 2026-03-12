@@ -121,6 +121,28 @@ export const uploadImg = async (file) => {
     return data.data.url;
 };
 
+export const uploadVideo = async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', CLOUDINARY_PRESET);
+    formData.append('resource_type', 'video');
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/video/upload`, { method: 'POST', body: formData });
+    const data = await res.json();
+    if (!data.secure_url) throw new Error('Cloudinary upload failed');
+    return data.secure_url;
+};
+
+export const uploadFile = async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', CLOUDINARY_PRESET);
+    formData.append('resource_type', 'auto');
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/upload`, { method: 'POST', body: formData });
+    const data = await res.json();
+    if (!data.secure_url) throw new Error('Cloudinary upload failed');
+    return data.secure_url;
+};
+
 export const uploadAudio = async (blob) => {
     const formData = new FormData();
     formData.append('file', blob, 'voice.webm');

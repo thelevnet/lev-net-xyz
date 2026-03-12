@@ -33,12 +33,16 @@
     <div class="Header">
         <button id="menuToggle" class="card"><i class="fa-solid fa-bars"></i></button>
         <h1>Chat<br><span id="chatTitle"></span></h1>
-        <button id="settingsBtn" class="card"><i class="fa-solid fa-gear"></i></button>
+        <div id="headerActions" style="display: flex; align-items: center;"></div>
     </div>
 
     <div class="chat-container">
         <div id="sidebar">
             <div class="sidebar-content">
+                <div style="display: flex; gap: 10px; margin-bottom: 1rem;">
+                    <a href="../index.html" class="card" style="flex: 1; display: flex; align-items: center; justify-content: center; text-decoration: none; color: inherit; height: 44px;"><i class="fa-solid fa-house"></i></a>
+                    <button id="settingsBtn" class="card" style="flex: 1; height: 44px;"><i class="fa-solid fa-gear"></i></button>
+                </div>
                 <input type="text" id="chatSearch" placeholder="@user or #group" class="card">
                 <div id="searchSuggestions" class="card"
                      style="display:none; position:absolute; width:210px; z-index:100; max-height:200px; overflow-y:auto; margin-top:-5px;"></div>
@@ -122,21 +126,32 @@
                 <div id="cmdSuggestions" class="card"
                      style="display:none; position:absolute; bottom:100%; left:60px; width:calc(100% - 120px); z-index:1000; margin-bottom:10px;"></div>
 
-                <label for="imgInput" class="card"
-                       style="cursor:pointer; display:flex; align-items:center; justify-content:center; width:50px;">
-                    <i class="fa-regular fa-image"></i>
-                    <input type="file" id="imgInput" accept="image/*" style="display:none;">
-                </label>
+                <div id="attachmentMenu" class="card" style="display:none; position:absolute; bottom:100%; left:20px; z-index:1001; margin-bottom:10px; width:180px; padding:8px; flex-direction:column; gap:5px;">
+                    <label for="imgInput" class="admin-btn" style="text-align:left; display:flex; align-items:center; gap:10px; cursor:pointer; padding:8px !important; border-radius:8px !important;">
+                        <i class="fa-regular fa-image" style="width:20px; text-align:center;"></i> Photo
+                        <input type="file" id="imgInput" accept="image/*" style="display:none;">
+                    </label>
+                    <label for="videoInput" class="admin-btn" style="text-align:left; display:flex; align-items:center; gap:10px; cursor:pointer; padding:8px !important; border-radius:8px !important;">
+                        <i class="fa-solid fa-video" style="width:20px; text-align:center;"></i> Video
+                        <input type="file" id="videoInput" accept="video/*" style="display:none;">
+                    </label>
+                    <label for="fileInput" class="admin-btn" style="text-align:left; display:flex; align-items:center; gap:10px; cursor:pointer; padding:8px !important; border-radius:8px !important;">
+                        <i class="fa-solid fa-file" style="width:20px; text-align:center;"></i> File
+                        <input type="file" id="fileInput" style="display:none;">
+                    </label>
+                </div>
+
+                <button id="attachBtn" class="card" style="width:50px; display:flex; align-items:center; justify-content:center;">
+                    <i class="fa-solid fa-paperclip"></i>
+                </button>
 
                 <textarea id="msgInput" placeholder="Message..." class="card" rows="1"
                           style="resize:none; transition: height 0.2s;"></textarea>
 
                 <span id="recordingTimer" style="display:none; font-size:0.75rem; color:red; font-weight:bold; align-self:center; min-width:30px;"></span>
-                <button id="voiceBtn" class="card" style="width:50px; display:flex; align-items:center; justify-content:center;">
+                <button id="sendBtn" class="card" style="width:50px; display:flex; align-items:center; justify-content:center;">
                     <i class="fa-solid fa-microphone"></i>
                 </button>
-
-                <button id="sendBtn" class="card"><i class="fa-solid fa-paper-plane"></i></button>
             </div>
         </div>
 

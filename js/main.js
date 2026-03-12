@@ -43,10 +43,17 @@ const init = () => {
         area.style.height = 'auto';
         area.style.height = area.scrollHeight + 'px';
         const btn = document.getElementById('sendBtn');
-        if (area.value.trim().length > 0 && state.currentChatId) btn.classList.add('active');
-        else btn.classList.remove('active');
+        const isText = area.value.trim().length > 0;
+        
+        if (isText && state.currentChatId) {
+            btn.classList.add('active');
+            btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i>';
+        } else {
+            btn.classList.remove('active');
+            btn.innerHTML = '<i class="fa-solid fa-microphone"></i>';
+        }
 
-        if (area.value.trim().length > 0) {
+        if (isText) {
             setTyping(true);
             clearTimeout(state.typingTimeout);
             state.typingTimeout = setTimeout(() => setTyping(false), 3000);
@@ -185,13 +192,51 @@ const init = () => {
         }
     };
 
-    // Voice
-    const voiceBtn = document.getElementById('voiceBtn');
+    // Send / Voice Button Logic
+    const sendBtn = document.getElementById('sendBtn');
     let isRecording = false;
-    voiceBtn.addEventListener('mousedown', () => { if ('ontouchstart' in window) return; startRecording(); });
-    voiceBtn.addEventListener('mouseup', () => { if ('ontouchstart' in window) return; if (getMediaRecorder()) stopRecording(); });
-    voiceBtn.addEventListener('mouseleave', () => { if ('ontouchstart' in window) return; if (getMediaRecorder()) stopRecording(); });
-    voiceBtn.addEventListener('touchstart', (e) => { e.preventDefault(); isRecording ? stopRecording() : startRecording(); isRecording = !isRecording; }, { passive: false });
+
+    sendBtn.onclick = () => {
+        if (area.value.trim().length > 0) {
+            sendMsg();
+        }
+    };
+
+    sendBtn.addEventListener('mousedown', () => { 
+        if (area.value.trim().length === 0) {
+            if ('ontouchstart' in window) return; 
+            startRecording(); 
+        }
+    });
+    sendBtn.addEventListener('mouseup', () => { 
+        if (area.value.trim().length === 0) {
+            if ('ontouchstart' in window) return; 
+            if (getMediaRecorder()) stopRecording(); 
+        }
+    });
+    sendBtn.addEventListener('mouseleave', () => { 
+        if (area.value.trim().length === 0) {
+            if ('ontouchstart' in window) return; 
+            if (getMediaRecorder()) stopRecording(); 
+        }
+    });
+    sendBtn.addEventListener('touchstart', (e) => { 
+        if (area.value.trim().length === 0) {
+            e.preventDefault(); 
+            isRecording ? stopRecording() : startRecording(); 
+            isRecording = !isRecording; 
+        }
+    }, { passive: false });
+
+    // Attachment Menu
+    const attachBtn = document.getElementById('attachBtn');
+    const attachmentMenu = document.getElementById('attachmentMenu');
+    attachBtn.onclick = (e) => {
+        e.stopPropagation();
+        attachmentMenu.style.display = attachmentMenu.style.display === 'flex' ? 'none' : 'flex';
+    };
+    document.addEventListener('click', () => { attachmentMenu.style.display = 'none'; });
+    attachmentMenu.onclick = (e) => e.stopPropagation();
 
     // Image
     document.getElementById('imgInput').onchange = async (e) => {
@@ -201,13 +246,57 @@ const init = () => {
         btn.style.opacity = '0.5';
         try {
             const { push: fbPush, ref: fbRef, set: fbSet, serverTimestamp: fbTs } = await import('./firebase.js');
-            const url = await uploadImg(file);
+            const { uploadImg: upImg } = await import('./media.js');
+            const url = await upImg(file);
             fbPush(fbRef(db, 'messages/' + state.activeChatDbId), { user: state.currentUser, text: `IMG_URL:${url}`, timestamp: fbTs() });
             const myKey = state.currentUser.replace('@', '');
             fbSet(fbRef(db, `active_chats/${myKey}/${state.activeChatDbId}/lastMsg`), '🖼 Image');
             fbSet(fbRef(db, `active_chats/${myKey}/${state.activeChatDbId}/lastTime`), Date.now());
         } catch { await showCustomModal("Upload failed"); }
-        finally { btn.style.opacity = '1'; e.target.value = ''; }
+        finally { btn.style.opacity = '1'; e.target.value = ''; attachmentMenu.style.display = 'none'; }
+    };
+
+    // Video
+    document.getElementById('videoInput').onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file || !state.currentChatId) return;
+        const btn = e.target.parentElement;
+        btn.style.opacity = '0.5';
+        try {
+            const { push: fbPush, ref: fbRef, set: fbSet, serverTimestamp: fbTs } = await import('./firebase.js');
+            const { uploadVideo: upVid } = await import('./media.js');
+            const url = await upVid(file);
+            fbPush(fbRef(db, 'messages/' + state.activeChatDbId), { user: state.currentUser, text: `VIDEO_URL:${url}`, timestamp: fbTs() });
+            const myKey = state.currentUser.replace('@', '');
+            fbSet(fbRef(db, `active_chats/${myKey}/${state.activeChatDbId}/lastMsg`), '🎥 Video');
+            fbSet(fbRef(db, `active_chats/${myKey}/${state.activeChatDbId}/lastTime`), Date.now());
+        } catch { await showCustomModal("Upload failed"); }
+        finally { btn.style.opacity = '1'; e.target.value = ''; attachmentMenu.style.display = 'none'; }
+    };
+
+    // File
+    document.getElementById('fileInput').onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file || !state.currentChatId) return;
+        const btn = e.target.parentElement;
+        btn.style.opacity = '0.5';
+        try {
+            const { push: fbPush, ref: fbRef, set: fbSet, serverTimestamp: fbTs } = await import('./firebase.js');
+            const { uploadFile: upFile } = await import('./media.js');
+            const url = await upFile(file);
+            fbPush(fbRef(db, 'messages/' + state.activeChatDbId), { 
+                user: state.currentUser, 
+                text: `FILE_URL:${url}|NAME:${file.name}`, 
+                timestamp: fbTs() 
+            });
+            const myKey = state.currentUser.replace('@', '');
+            fbSet(fbRef(db, `active_chats/${myKey}/${state.activeChatDbId}/lastMsg`), '📁 File');
+            fbSet(fbRef(db, `active_chats/${myKey}/${state.activeChatDbId}/lastTime`), Date.now());
+        } catch (err) { 
+            console.error(err);
+            await showCustomModal("Upload failed"); 
+        }
+        finally { btn.style.opacity = '1'; e.target.value = ''; attachmentMenu.style.display = 'none'; }
     };
 
     get(ref(db, 'invites/')).then(snap => { if (!snap.exists()) set(ref(db, 'invites/'), true); });

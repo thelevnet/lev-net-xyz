@@ -17,9 +17,10 @@
 
     <div class="Tabs">
         <div class="tab active" data-target="about">About Me</div>
+        <div class="tab" data-target="ideas">Ideas</div>
         <div class="tab" data-target="downloads">Downloads</div>
         <div class="tab" data-target="links">Links</div>
-<!--        <div class="tab" data-target="chat">Chat</div>-->
+        <div class="tab" data-target="chat">Chat</div>
     </div>
 
     <div class="Content">
@@ -32,6 +33,20 @@
                     <div class="card"><i class="fa-brands fa-python"></i><h3>Python</h3><p>Good knowledge</p></div>
                     <div class="card"><i class="fa-solid fa-hashtag"></i><h3>C#</h3><p>Learning...</p></div>
                     <div class="card"><i class="fa-solid fa-c"></i><i class="fa-solid fa-plus"></i><i class="fa-solid fa-plus"></i><h3>C++</h3><p>Learning...</p></div>
+                </div>
+            </section>
+
+            <section class="section-margin">
+                <h3><i class="fa-solid fa-graduation-cap"></i> Education & Learning</h3>
+                <div class="grid">
+                    <div class="card">
+                        <h3>Currently Learning</h3>
+                        <p>Focusing on Low-level programming with C++ and game development with C#.</p>
+                    </div>
+                    <div class="card">
+                        <h3>Self-Taught</h3>
+                        <p>I enjoy exploring new technologies and building tools that solve real problems.</p>
+                    </div>
                 </div>
             </section>
 
@@ -70,6 +85,23 @@
             </section>
         </div>
 
+        <div id="ideas" class="tab-pane">
+            <h2 class="header">Web Ideas</h2>
+            <p>Share your ideas for new web projects and comment on others!</p>
+            
+            <div class="card" style="margin-top: 20px;">
+                <h3><i class="fa-solid fa-lightbulb"></i> Submit a new Idea</h3>
+                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                    <input type="text" id="ideaInput" placeholder="I have an idea for..." style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text-1); font-family: inherit;">
+                    <button id="submitIdeaBtn" class="card" style="padding: 0 20px; cursor: pointer; height: 44px; display: flex; align-items: center; justify-content: center; box-shadow: none;">Post</button>
+                </div>
+            </div>
+
+            <div id="ideasList" style="margin-top: 30px;">
+                <div style="text-align: center; opacity: 0.5;">Loading ideas...</div>
+            </div>
+        </div>
+
         <div id="downloads" class="tab-pane">
             <h2 class="header">Downloads</h2>
             <div class="card project-item">
@@ -93,6 +125,7 @@
     </div>
 </div>
 <script src="js/index.js"></script>
+<script type="module" src="js/ideas.js"></script>
 <script type="module" src="js/chat.js"></script>
 </body>
 </html>

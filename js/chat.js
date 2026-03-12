@@ -118,6 +118,18 @@ function openChat(id, targetMsgId = null, forceDbId = null) {
             if (content.startsWith('IMG_URL:')) {
                 const url = /^https?:\/\//.test(content.replace('IMG_URL:', '')) ? content.replace('IMG_URL:', '') : '';
                 content = url ? `<img src="${url}" style="max-width:100%;border-radius:8px;cursor:pointer;display:block;" data-open-img="${url}">` : '';
+            } else if (content.startsWith('VIDEO_URL:')) {
+                const url = content.replace('VIDEO_URL:', '');
+                content = `<video src="${url}" controls style="max-width:100%;border-radius:8px;display:block;background:#000;"></video>`;
+            } else if (content.startsWith('FILE_URL:')) {
+                const parts = content.replace('FILE_URL:', '').split('|NAME:');
+                const url = parts[0];
+                const name = parts[1] || 'File';
+                content = `<a href="${url}" target="_blank" class="card" style="display:flex; align-items:center; gap:10px; text-decoration:none; color:inherit; padding:10px; margin-top:5px;">
+                    <i class="fa-solid fa-file" style="font-size:1.5rem; color:var(--link);"></i>
+                    <div style="flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis;">${name}</div>
+                    <i class="fa-solid fa-download" style="opacity:0.5;"></i>
+                </a>`;
             } else if (content.startsWith('AUDIO_URL:')) {
                 const url = content.replace('AUDIO_URL:', '');
                 const pid = 'ap_' + msgKey;
@@ -156,7 +168,12 @@ function openChat(id, targetMsgId = null, forceDbId = null) {
             let replyHtml = '';
             if (m.replyTo) {
                 const rt = m.replyTo;
-                const rText = rt.text?.startsWith('IMG_URL:') ? '🖼 Image' : (rt.text || '').slice(0, 80);
+                let rText = rt.text || '';
+                if (rText.startsWith('IMG_URL:')) rText = '🖼 Image';
+                else if (rText.startsWith('VIDEO_URL:')) rText = '🎥 Video';
+                else if (rText.startsWith('FILE_URL:')) rText = '📁 File';
+                else if (rText.startsWith('AUDIO_URL:')) rText = '🎤 Voice';
+                else rText = rText.slice(0, 80);
                 replyHtml = `<div class="reply-quote" data-scroll-to="${rt.id}">${rt.user}: ${rText}</div>`;
             }
 

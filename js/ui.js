@@ -75,6 +75,12 @@ export const updateSettingsAvatar = (url) => {
 
 export const showCallButton = (chatId) => {
     document.getElementById('callHeaderBtn')?.remove();
+
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar && !sidebar.classList.contains('hidden')) {
+        return; // Sidebar is open, do not show call button
+    }
+    
     if (!chatId || chatId.startsWith('#') || chatId === 'System' || chatId === 'GLOBAL_FEED' || chatId === '@gemini' || chatId.startsWith('gemini_chat_')) return;
     const btn = document.createElement('button');
     btn.id = 'callHeaderBtn';

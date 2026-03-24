@@ -20,6 +20,7 @@ export function loadActiveChats() {
             d.onclick = () => {
                 set(ref(db, `active_chats/${state.currentUser.replace('@', '')}/${id}/unread`), 0);
                 window.openChat(info.title);
+
             };
             if (state.currentChatId && state.currentChatId === info.title) d.classList.add('active');
 

@@ -1,7 +1,39 @@
-import { db, ref, set, get, onValue, serverTimestamp, state, SYSTEM_CHAT_ID, VAPID, hashPassword, saveTokenToDb, messaging, getToken } from './firebase.js';
-import { showCustomModal, setTyping, proceed, updateSettingsAvatar } from './ui.js';
+import { db, ref, set, get, onValue, serverTimestamp, state, SYSTEM_CHAT_ID, VAPID, hashPassword, saveTokenToDb, messaging, getToken, makeAvatarEl, getAvatar } from './firebase.js';
+import { showCustomModal, setTyping, proceed, updateSettingsAvatar, showCallButton } from './ui.js';
 import { sendMsg } from './chat.js';
 import { startRecording, stopRecording, getMediaRecorder, uploadImg } from './media.js';
+
+const updateHeaderButtonVisibility = () => {
+    const sidebar = document.getElementById('sidebar');
+    const chatSearch = document.getElementById('chatSearch');
+    const createGroupBtn = document.getElementById('createGroupBtn');
+    const settingsBtn = document.getElementById('settingsBtn');
+    const menuToggle = document.getElementById('menuToggle');
+
+    if (!sidebar || !chatSearch || !createGroupBtn || !settingsBtn || !menuToggle) {
+        console.warn('One or more header elements not found for visibility update.');
+        return;
+    }
+
+    const isSidebarOpen = !sidebar.classList.contains('hidden');
+
+    // menuToggle is always visible
+    menuToggle.style.display = 'flex';
+
+    if (isSidebarOpen) {
+        // Sidebar is open: show chatSearch, createGroupBtn, settingsBtn
+        chatSearch.style.display = 'flex';
+        createGroupBtn.style.display = 'flex';
+        settingsBtn.style.display = 'flex';
+    } else {
+        // Sidebar is closed: hide chatSearch, createGroupBtn, settingsBtn
+        chatSearch.style.display = 'none';
+        createGroupBtn.style.display = 'none';
+        settingsBtn.style.display = 'none';
+    }
+    // The 'call' button (callHeaderBtn) is dynamically added to headerActions
+    // Its visibility is handled by `showCallButton` in ui.js, and it should remain visible.
+};
 
 const init = () => {
     const savedUser = localStorage.getItem('currentUser');
@@ -44,7 +76,7 @@ const init = () => {
         area.style.height = area.scrollHeight + 'px';
         const btn = document.getElementById('sendBtn');
         const isText = area.value.trim().length > 0;
-        
+
         if (isText && state.currentChatId) {
             btn.classList.add('active');
             btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i>';
@@ -109,18 +141,139 @@ const init = () => {
     // Buttons
     document.getElementById('settingsBtn').onclick = () => {
         document.getElementById('settingsPanel').classList.toggle('hidden');
-        document.getElementById('sidebar').classList.add('hidden');
+        document.getElementById('sidebar').classList.add('hidden'); // Ensure sidebar is hidden when settings panel is opened
+        updateHeaderButtonVisibility(); // Update button visibility after sidebar state changes
+        showCallButton(state.currentChatId); // Update call button visibility
     };
+
     document.getElementById('logoutBtn').onclick = () => { setTyping(false); localStorage.clear(); location.reload(); };
     document.getElementById('menuToggle').onclick = () => {
         document.getElementById('sidebar').classList.toggle('hidden');
-        document.getElementById('settingsPanel').classList.add('hidden');
+        document.getElementById('settingsPanel').classList.add('hidden'); // Ensure settings panel is hidden when sidebar is toggled
+        updateHeaderButtonVisibility(); // Update button visibility after sidebar state changes
+        showCallButton(state.currentChatId); // Update call button visibility
     };
     document.getElementById('sendBtn').onclick = sendMsg;
     document.getElementById('openFeedBtn').onclick = window.openFeed;
+
+    // Group Creation
+    const createGroupModal = document.getElementById('createGroupModal');
+    const groupNameInput = document.getElementById('groupNameInput');
+    const groupMembersSelection = document.getElementById('groupMembersSelection');
+    const groupIconInput = document.getElementById('groupIconInput');
+    const groupIconPreview = document.getElementById('groupIconPreview');
+    const confirmCreateGroup = document.getElementById('confirmCreateGroup');
+    const cancelCreateGroup = document.getElementById('cancelCreateGroup');
+
+    groupIconInput.onchange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = groupIconPreview.querySelector('img');
+                const i = groupIconPreview.querySelector('i');
+                if(img) { img.src = e.target.result; img.style.display = 'block'; }
+                if(i) i.style.display = 'none';
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
     document.getElementById('createGroupBtn').onclick = async () => {
-        const g = await showCustomModal("Group name:", true);
-        if (g) window.openChat('#' + g.trim().replace(/#/g, ''));
+        createGroupModal.style.display = 'flex';
+        groupNameInput.value = '';
+        groupIconInput.value = '';
+        if(groupIconPreview.querySelector('img')) groupIconPreview.querySelector('img').style.display = 'none';
+        if(groupIconPreview.querySelector('i')) groupIconPreview.querySelector('i').style.display = 'block';
+
+        groupMembersSelection.innerHTML = '<div style="padding:10px;text-align:center;opacity:0.5;">Loading users...</div>';
+        const snap = await get(ref(db, 'users'));
+        const users = snap.val() || {};
+        groupMembersSelection.innerHTML = '';
+
+        Object.keys(users).forEach(u => {
+            if ('@' + u === state.currentUser) return;
+            const div = document.createElement('div');
+            div.style.cssText = 'display:flex;align-items:center;padding:8px;gap:10px;border-bottom:1px solid var(--border);cursor:pointer;';
+
+            const av = makeAvatarEl(null, '@' + u, 30);
+            getAvatar('@' + u).then(url => { if(url) av.replaceWith(makeAvatarEl(url, '@' + u, 30)); });
+            div.appendChild(av);
+
+            const name = document.createElement('span');
+            name.innerText = '@' + u;
+            name.style.flex = '1';
+
+            const cb = document.createElement('input');
+            cb.type = 'checkbox';
+            cb.value = u;
+            cb.style.width = '18px';
+            cb.style.height = '18px';
+
+            div.onclick = (e) => { if(e.target !== cb) cb.checked = !cb.checked; };
+
+            div.appendChild(name);
+            div.appendChild(cb);
+            groupMembersSelection.appendChild(div);
+        });
+    };
+
+    cancelCreateGroup.onclick = () => {
+        createGroupModal.style.display = 'none';
+    };
+
+    confirmCreateGroup.onclick = async () => {
+        const name = groupNameInput.value.trim();
+        if (!name) return alert('Group name required!');
+
+        confirmCreateGroup.disabled = true;
+        confirmCreateGroup.innerText = 'Creating...';
+
+        try {
+            let iconUrl = null;
+            if (groupIconInput.files[0]) {
+                iconUrl = await uploadImg(groupIconInput.files[0]);
+            }
+
+            const selectedMembers = Array.from(groupMembersSelection.querySelectorAll('input:checked')).map(cb => cb.value);
+            const groupId = '#' + name.replace(/#/g, '');
+            const dbId = 'group_' + name.replace(/#/g, '');
+
+            const myKey = state.currentUser.replace('@', '');
+            const members = { [myKey]: true };
+            selectedMembers.forEach(m => members[m] = true);
+
+            const groupData = {
+                admins: { [myKey]: true },
+                members: members,
+                icon: iconUrl
+            };
+
+            await set(ref(db, 'groups/' + dbId), groupData);
+
+            await set(ref(db, `active_chats/${myKey}/${dbId}`), {
+                title: groupId,
+                lastMsg: 'Group created',
+                lastTime: Date.now()
+            });
+
+            for (const m of selectedMembers) {
+                await set(ref(db, `active_chats/${m}/${dbId}`), {
+                    title: groupId,
+                    lastMsg: 'Group created',
+                    lastTime: Date.now()
+                });
+            }
+
+            createGroupModal.style.display = 'none';
+            window.openChat(groupId);
+        } catch (e) {
+            console.error(e);
+            alert('Error creating group: ' + e.message);
+        } finally {
+            confirmCreateGroup.disabled = false;
+            confirmCreateGroup.innerText = 'Create';
+        }
     };
 
     // Auth
@@ -202,29 +355,29 @@ const init = () => {
         }
     };
 
-    sendBtn.addEventListener('mousedown', () => { 
+    sendBtn.addEventListener('mousedown', () => {
         if (area.value.trim().length === 0) {
-            if ('ontouchstart' in window) return; 
-            startRecording(); 
+            if ('ontouchstart' in window) return;
+            startRecording();
         }
     });
-    sendBtn.addEventListener('mouseup', () => { 
+    sendBtn.addEventListener('mouseup', () => {
         if (area.value.trim().length === 0) {
-            if ('ontouchstart' in window) return; 
-            if (getMediaRecorder()) stopRecording(); 
+            if ('ontouchstart' in window) return;
+            if (getMediaRecorder()) stopRecording();
         }
     });
-    sendBtn.addEventListener('mouseleave', () => { 
+    sendBtn.addEventListener('mouseleave', () => {
         if (area.value.trim().length === 0) {
-            if ('ontouchstart' in window) return; 
-            if (getMediaRecorder()) stopRecording(); 
+            if ('ontouchstart' in window) return;
+            if (getMediaRecorder()) stopRecording();
         }
     });
-    sendBtn.addEventListener('touchstart', (e) => { 
+    sendBtn.addEventListener('touchstart', (e) => {
         if (area.value.trim().length === 0) {
-            e.preventDefault(); 
-            isRecording ? stopRecording() : startRecording(); 
-            isRecording = !isRecording; 
+            e.preventDefault();
+            isRecording ? stopRecording() : startRecording();
+            isRecording = !isRecording;
         }
     }, { passive: false });
 
@@ -284,22 +437,24 @@ const init = () => {
             const { push: fbPush, ref: fbRef, set: fbSet, serverTimestamp: fbTs } = await import('./firebase.js');
             const { uploadFile: upFile } = await import('./media.js');
             const url = await upFile(file);
-            fbPush(fbRef(db, 'messages/' + state.activeChatDbId), { 
-                user: state.currentUser, 
-                text: `FILE_URL:${url}|NAME:${file.name}`, 
-                timestamp: fbTs() 
+            fbPush(fbRef(db, 'messages/' + state.activeChatDbId), {
+                user: state.currentUser,
+                text: `FILE_URL:${url}|NAME:${file.name}`,
+                timestamp: fbTs()
             });
             const myKey = state.currentUser.replace('@', '');
             fbSet(fbRef(db, `active_chats/${myKey}/${state.activeChatDbId}/lastMsg`), '📁 File');
             fbSet(fbRef(db, `active_chats/${myKey}/${state.activeChatDbId}/lastTime`), Date.now());
-        } catch (err) { 
+        } catch (err) {
             console.error(err);
-            await showCustomModal("Upload failed"); 
+            await showCustomModal("Upload failed");
         }
         finally { btn.style.opacity = '1'; e.target.value = ''; attachmentMenu.style.display = 'none'; }
     };
 
     get(ref(db, 'invites/')).then(snap => { if (!snap.exists()) set(ref(db, 'invites/'), true); });
+    // Initial call to set correct button states on page load (sidebar is initially closed)
+    updateHeaderButtonVisibility();
 };
 
 // Service Worker

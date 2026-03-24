@@ -49,7 +49,6 @@ function openChat(id, targetMsgId = null, forceDbId = null) {
         });
     }
 
-    if (window.innerWidth <= 600) document.getElementById('sidebar').classList.add('hidden');
 
     state.activeChatDbId = forceDbId || (id.startsWith('gemini_chat_') ? id : buildChatDbId(id));
     state.currentChatRef = ref(db, 'messages/' + state.activeChatDbId);

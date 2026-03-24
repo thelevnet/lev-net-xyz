@@ -55,9 +55,15 @@ export const buildChatDbIdFor = (chatId, fromUser) =>
 export const getActiveChatDbId = () => state.activeChatDbId;
 
 export const getAvatar = async (username) => {
-    const key = username.replace('@', '');
+    const key = username.replace(/[@#]/g, '');
     if (avatarCache[key] !== undefined) return avatarCache[key];
-    const snap = await get(ref(db, `users/${key}/avatar`));
+
+    let path = `users/${key}/avatar`;
+    if (username.startsWith('#')) {
+        path = `groups/group_${key}/icon`;
+    }
+
+    const snap = await get(ref(db, path));
     avatarCache[key] = snap.val() || null;
     return avatarCache[key];
 };

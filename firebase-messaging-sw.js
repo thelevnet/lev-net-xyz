@@ -12,5 +12,4 @@ const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
     console.log('Background message:', payload);
-    // Ничего не делаем — FCM показывает сам
 });

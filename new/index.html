@@ -13,23 +13,17 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { background: none; }
-        body::before {
-            content: '';
-            position: fixed;
-            inset: 0;
-            background: url('../pic/sakura.gif') no-repeat center center;
-            background-size: cover;
-            z-index: -1;
-        }
-        @supports (-webkit-touch-callout: none) {
-            body::before {
-                position: absolute;
-                min-height: 100dvh;
-            }
-        }
+        .bg-fix {
+    position: fixed;
+    inset: 0;
+    background: url('../pic/sakura.gif') no-repeat center center;
+    background-size: cover;
+    z-index: -1;
+}
     </style>
 </head>
 <body>
+<div class="bg-fix"></div>
 <div class="Header">
     <div class="hdr-burger">
         <span></span><span></span><span></span>
@@ -44,23 +38,34 @@
     <div class="section-content">
         <h3>Programming Languages & Tech</h3>
         <div class="grid">
-            <div class="card"><h3>Java</h3><p>Main Language</p></div>
-            <div class="card"><h3>Python</h3><p>Good knowledge</p></div>
-            <div class="card"><h3>C++</h3><p>Learning...</p></div>
+            <div class="card"><h3>Java</h3>
+                <p>Main Language</p></div>
+            <div class="card"><h3>Python</h3>
+                <p>Good knowledge</p></div>
+            <div class="card"><h3>C++</h3>
+                <p>Learning...</p></div>
         </div>
         <h3>Who am I?</h3>
         <div class="grid">
-            <div class="card"><h3>Birth Date:</h3><p>27.10.2012</p></div>
+            <div class="card"><h3>Birth Date:</h3>
+                <p>27.10.2012</p></div>
             <div class="card">
                 <h3>Languages:</h3>
                 <h4>I Know:</h4>
-                <p>German</p><p>English</p><p>Ukranian</p><p>Russian</p>
+                <p>German</p>
+                <p>English</p>
+                <p>Ukranian</p>
+                <p>Russian</p>
                 <h4>I Learn:</h4>
-                <p>Japanese</p><p>Latin</p>
+                <p>Japanese</p>
+                <p>Latin</p>
             </div>
             <div class="card">
                 <h3>Hobbies:</h3>
-                <p>Programming</p><p>Drawing</p><p>Languages</p><p>Math</p>
+                <p>Programming</p>
+                <p>Drawing</p>
+                <p>Languages</p>
+                <p>Math</p>
             </div>
         </div>
     </div>

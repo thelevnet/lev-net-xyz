@@ -27,6 +27,20 @@ body {
     font-size: 1.5rem;
     line-height: 1.2;
 }
+body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: url('../pic/sakura.gif') no-repeat center center;
+    background-size: cover;
+    z-index: -1;
+}
+@supports (-webkit-touch-callout: none) {
+    body::before {
+        position: absolute;
+        min-height: 100dvh;
+    }
+}
 .Header {
     position: fixed;
     top: 0; left: 0;
@@ -55,7 +69,7 @@ body {
 }
 .snap-section {
     scroll-snap-align: start;
-    height: 95vh;
+    height: 100dvh;
     display: flex;
     flex-direction: column;
     padding: 5rem 2rem 1.5rem;
@@ -75,6 +89,10 @@ body {
 .site-title {
     font-size: 15rem;
     color: var(--text-1);
+    text-align: center;
+}
+#s-title p {
+    font-size: clamp(1.5rem, 6vw, 4rem);
     text-align: center;
 }
 .section-content {
@@ -101,43 +119,29 @@ body {
 ul { list-style: none; padding-left: 0.3125rem; }
 li { display: flex; gap: 0.625rem; margin-bottom: 0.5rem; }
 a { color: var(--secondary); text-decoration: none; }
-.download-link { text-decoration: none; color: inherit; }
 h2 { color: var(--text-1); margin-bottom: 0.5rem; }
 h3 { color: var(--text-2); }
 h4 { color: var(--text-2); }
 p { color: var(--text-3); }
-.header { color: var(--secondary); }
 
-/* ── PROJECTS HORIZONTAL SCROLL ── */
-#s-downloads {
-    position: relative;
-}
-.projects-scroll-wrapper {
+/* ── PROJECTS ── */
+#s-downloads { overflow: hidden; }
+.projects-container {
     flex: 1;
-    overflow: hidden;
-    display: flex;
-    align-items: stretch;
-    min-height: 0;
-    position: relative;
-}
-.projects-track {
-    display: flex;
-    flex-direction: row;
-    height: 100%;
-    gap: 1.5rem;
-    will-change: transform;
-    /* убрать transition отсюда — JS управляет */
-}
-.proj-card {
-    flex: 0 0 66.666%;
-    height: 100%;
-    /* убрать margin-right — используем gap */
-    border: 0.3rem solid var(--border);
     display: flex;
     flex-direction: column;
+    min-height: 0;
+}
+.proj-card {
+    display: none;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    border: 0.3rem solid var(--border);
     background: var(--surface);
     transition: border-color var(--transition);
 }
+.proj-card.active { display: flex; }
 .proj-card:hover { border-color: var(--secondary); }
 .proj-img-wrap {
     flex: 0 0 55%;
@@ -157,55 +161,55 @@ p { color: var(--text-3); }
     flex-direction: column;
     gap: 0.5rem;
     overflow: hidden;
+    min-height: 0;
 }
 .proj-body h2 { font-size: 2rem; margin-bottom: 0; }
 .proj-body p  { font-size: 1.2rem; }
-.proj-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.4rem;
-}
+.proj-tags { display: flex; flex-wrap: wrap; gap: 0.4rem; }
 .tag {
     border: 0.2rem solid var(--border);
     padding: 0.1rem 0.5rem;
     color: var(--text-2);
     font-size: 1rem;
 }
-.proj-links {
-    margin-top: auto;
-    display: flex;
-    gap: 1rem;
-}
+.proj-links { margin-top: auto; display: flex; gap: 1rem; }
 .proj-links a { color: var(--secondary); font-size: 1.2rem; }
 .proj-links a:hover { color: var(--primary); }
-
-/* nav arrows */
-.proj-nav {
-    position: absolute;
-    top: 0;
-    height: 100%;
-    z-index: 10;
-    background: color-mix(in srgb, var(--bg) 0%, transparent);
-    border: none;
-    width: 17%;
+.proj-controls {
     display: flex;
     align-items: center;
     justify-content: center;
-    cursor: pointer;
-    transition: background var(--transition);
-    user-select: none;
-    font-size: 0;
+    gap: 2rem;
+    padding: 0.75rem 0 0;
+    flex-shrink: 0;
 }
-.proj-nav.left  { left: 0; }
-.proj-nav.right { right: 0; }
+.proj-controls button {
+    background: var(--surface);
+    border: 0.3rem solid var(--border);
+    color: var(--text-1);
+    font-family: "Tiny5", sans-serif;
+    font-size: 1.5rem;
+    padding: 0.2rem 1rem;
+    cursor: pointer;
+    transition: border-color var(--transition);
+}
+.proj-controls button:hover { border-color: var(--secondary); }
+#proj-counter { color: var(--text-3); font-size: 1.2rem; }
 
-/* counter badge */
-.proj-counter {
-    position: absolute;
-    bottom: 0.5rem;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 1.2rem;
-    color: var(--text-3);
-    letter-spacing: 0.1em;
+/* ── MOBILE ── */
+@media (max-width: 768px) {
+    .site-title { font-size: clamp(2rem, 10vw, 6rem); }
+    .snap-section > .section-label { font-size: clamp(1.8rem, 7vw, 3rem); }
+    .snap-section { padding: 4rem 1rem 1rem; }
+    #s-about {
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        height: auto;
+        min-height: 100dvh;
+    }
+    #s-about .section-content {
+        overflow: visible;
+        min-height: unset;
+        flex: unset;
+    }
 }

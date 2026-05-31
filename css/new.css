@@ -138,41 +138,39 @@ p { color: var(--text-3); }
     flex: 1;
     min-height: 0;
     border: 0.3rem solid var(--border);
-    background: var(--surface);
+    background-size: cover;
+    background-position: center;
+    position: relative;
     transition: border-color var(--transition);
+}
+.proj-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.4) 40%, transparent 100%);
+    z-index: 0;
 }
 .proj-card.active { display: flex; }
 .proj-card:hover { border-color: var(--secondary); }
-.proj-img-wrap {
-    flex: 0 0 55%;
-    overflow: hidden;
-    background: var(--surface-2);
-}
-.proj-img-wrap img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-}
 .proj-body {
-    flex: 1;
+    position: relative;
+    z-index: 1;
+    margin-top: auto;
     padding: 1rem;
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
-    overflow: hidden;
-    min-height: 0;
 }
-.proj-body h2 { font-size: 2rem; margin-bottom: 0; }
-.proj-body p  { font-size: 1.2rem; }
+.proj-body h2 { font-size: 2rem; margin-bottom: 0; color: #fff; }
+.proj-body p  { font-size: 1.2rem; color: rgba(255,255,255,0.7); }
 .proj-tags { display: flex; flex-wrap: wrap; gap: 0.4rem; }
 .tag {
-    border: 0.2rem solid var(--border);
+    border: 0.2rem solid rgba(255,255,255,0.4);
     padding: 0.1rem 0.5rem;
-    color: var(--text-2);
+    color: rgba(255,255,255,0.8);
     font-size: 1rem;
 }
-.proj-links { margin-top: auto; display: flex; gap: 1rem; }
+.proj-links { margin-top: 0.25rem; display: flex; gap: 1rem; }
 .proj-links a { color: var(--secondary); font-size: 1.2rem; }
 .proj-links a:hover { color: var(--primary); }
 .proj-controls {
@@ -194,7 +192,7 @@ p { color: var(--text-3); }
     transition: border-color var(--transition);
 }
 .proj-controls button:hover { border-color: var(--secondary); }
-#proj-counter { color: var(--text-3); font-size: 1.2rem; }
+#proj-counter { color: var(--text-1); font-size: 1.2rem; }
 
 /* ── MOBILE ── */
 @media (max-width: 768px) {

@@ -1,11 +1,19 @@
 import { db, state, hashPassword } from './firebase.js';
 import { ref, set, get, onValue, push, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-
 // Функция для запроса к OpenRouter AI
-async function askOpenRouter(userText) {
-  const apiKey = "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";
+async function askOpenRouter(userText, userPrefs) {
+  // ⚠️ Напоминание: перенесите ключ в бэкенд, если планируете продакшн!
+  const apiKey = "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";
   const modelName = "openai/gpt-oss-120b:free";
+
+  // Базовая системная инструкция, чтобы ИИ знал, кто он
+  let systemPrompt = "Ты — ИИ-ассистент по имени AI. Отвечай развернуто, грамотно и помогай пользователю во всем.";
+
+  // Если из Firebase прилетели настройки, склеиваем их с базовыми
+  if (userPrefs) {
+    systemPrompt += `\nДополнительные пожелания пользователя к твоим ответам: ${userPrefs}`;
+  }
 
   try {
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -13,16 +21,15 @@ async function askOpenRouter(userText) {
       headers: {
         "Authorization": `Bearer ${apiKey}`,
         "Content-Type": "application/json",
-        // Рекомендуемые OpenRouter заголовки для корректной аналитики:
         "HTTP-Referer": window.location.href,
-        "X-Title": "Claude Web App Prototyping"
+        "X-Title": "AI Web App Prototyping"
       },
       body: JSON.stringify({
         model: modelName,
         messages: [
           {
             role: "system",
-            content: "Ты — ИИ-ассистент по имени Claude. Отвечай развернуто, грамотно и помогай пользователю во всем."
+            content: systemPrompt
           },
           {
             role: "user",
@@ -38,7 +45,6 @@ async function askOpenRouter(userText) {
     }
 
     const data = await response.json();
-    // Извлекаем текст ответа нейросети
     return data.choices[0].message.content;
 
   } catch (error) {
@@ -46,6 +52,7 @@ async function askOpenRouter(userText) {
     return `Ошибка при генерации ответа: ${error.message}`;
   }
 }
+
 // ---- SCREEN ROUTER ----
 const allScreens = ['s-login','s-sidebar','s-chat','s-settings','s-profile'];
 export function show(id) {
@@ -55,6 +62,11 @@ export function show(id) {
   });
   const t = document.getElementById(id);
   if (t) t.classList.add('active');
+
+  // Дополнительный фикс для мобилки: убираем активную шторку сайдбара при переходе на экраны
+  if (id !== 's-sidebar') {
+    document.getElementById('s-sidebar')?.classList.remove('active');
+  }
 }
 
 // ---- CLOCK ----
@@ -98,34 +110,41 @@ async function doLogin() {
   loginAs(u);
 }
 
-function loginAs(u) {
+async function loginAs(u) {
   state.currentUser = '@' + u;
-  localStorage.setItem('claude_user', u);
+  localStorage.setItem('AI_user', u);
   document.querySelectorAll('.username-display').forEach(el => el.textContent = '@' + u);
   document.querySelectorAll('.avatar-letter').forEach(el => el.textContent = u[0].toUpperCase());
   document.getElementById('pf-username').value = u;
+
+  // Загружаем настройки из Firebase при логине
+  const prefsTextarea = document.getElementById('pf-prefs');
+  if (prefsTextarea) {
+    try {
+      const snap = await get(ref(db, `users/${u}/preferences`));
+      if (snap.exists()) {
+        prefsTextarea.value = snap.val();
+      } else {
+        prefsTextarea.value = '';
+      }
+    } catch (e) {
+      console.error("Ошибка загрузки настроек:", e);
+    }
+  }
+
   loadRecentChats();
   show('s-sidebar');
 }
 
 function tryAutoLogin() {
-  const saved = localStorage.getItem('claude_user');
+  const saved = localStorage.getItem('AI_user');
   if (saved) loginAs(saved);
   else show('s-login');
 }
 
 // ---- RECENT CHATS ----
 function loadRecentChats() {
-  // static for now, can hook to firebase later
-  const items = [
-    'Importing files from a path in C++',
-    'Расшифровка DTMF кода',
-    'Неловкий момент в ванной',
-    'Viber emoji replacement complaint',
-    'Перевод японской песни на слух',
-    'Плейлист из 200 видео Bad Apple',
-    'Первый контакт с ИИ в Telegram',
-  ];
+  const items = ['Recent Chat'];
   const list = document.getElementById('recent-list');
   list.innerHTML = '';
   items.forEach(txt => {
@@ -147,7 +166,6 @@ async function sendMessage() {
   const empty = document.getElementById('chat-empty');
   const note = document.getElementById('ai-note');
 
-  // Прячем пустой экран, если он есть
   if (empty) empty.style.display = 'none';
 
   // 1. Добавляем сообщение пользователя на экран
@@ -158,20 +176,34 @@ async function sendMessage() {
   box.textContent = '';
   body.scrollTop = body.scrollHeight;
 
-  // 2. Создаем элемент-заглушку "Печатает...", пока ждем ответ
+  // 2. Создаем заглушку "Печатает..."
   const aiMessageEl = document.createElement('div');
   aiMessageEl.className = 'msg-ai';
-  aiMessageEl.innerHTML = `<span style="color: var(--text2); font-style: italic;">Claude думает...</span>`;
+  aiMessageEl.innerHTML = `<span style="color: var(--text-2); font-style: italic;">AI thinks....</span>`;
   body.appendChild(aiMessageEl);
   body.scrollTop = body.scrollHeight;
 
-  // 3. Делаем реальный запрос к ИИ
-  const aiResponseText = await askOpenRouter(text);
+  // 3. Вытаскиваем настройки пользователя ИЗ ФАЙРБЕЙЗА
+  const currentUser = localStorage.getItem('AI_user');
+  let userPrefs = "";
 
-  // 4. Заменяем текст "Думает..." на реальный ответ от ИИ с кнопками действий
-  // Используем прерывания строк для сохранения форматирования (или можно подключить markdown-микробиблиотеку)
+  if (currentUser) {
+    try {
+      const snap = await get(ref(db, `users/${currentUser}/preferences`));
+      if (snap.exists()) {
+        userPrefs = snap.val();
+      }
+    } catch (e) {
+      console.error("Не удалось прочитать настройки для ИИ:", e);
+    }
+  }
+
+  // 4. Делаем реальный запрос к ИИ
+  const aiResponseText = await askOpenRouter(text, userPrefs);
+
+  // 5. Выводим ответ на экран с пиксельными кнопками действий
   aiMessageEl.innerHTML = `${aiResponseText.replace(/\n/g, '<br>')}
-    <div class="msg-meta">
+    <div class="msg-meta" style="display:flex; gap:8px; margin-top:8px;">
       ${ico('copy')}${ico('share')}${ico('play')}${ico('like')}${ico('dislike')}${ico('retry')}
     </div>`;
 
@@ -179,21 +211,18 @@ async function sendMessage() {
   body.scrollTop = body.scrollHeight;
 }
 
+// ---- ПОЛНОСТЬЮ ПИКСЕЛЬНЫЙ СЛОВАРЬ ИКОНОК ----
 function ico(name) {
   const icons = {
-    copy: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>',
-    share: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>',
-    play: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>',
-    like: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14z"/><path d="M7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3"/></svg>',
-    dislike: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 15v4a3 3 0 003 3l4-9V2H5.72a2 2 0 00-2 1.7l-1.38 9a2 2 0 002 2.3H10z"/><path d="M17 2h2.67A2.31 2.31 0 0122 4v7a2.31 2.31 0 01-2.33 2H17"/></svg>',
-    retry: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>',
+    copy: '<svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" style="cursor:pointer;"><rect x="1" y="1" width="10" height="10"/><rect x="5" y="5" width="10" height="10" fill="currentColor"/></svg>',
+    retry: '<svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" style="cursor:pointer;"><rect x="1" y="1" width="2" height="6"/><rect x="1" y="5" width="6" height="2"/><rect x="3" y="2" width="10" height="2"/><rect x="11" y="4" width="2" height="8"/><rect x="3" y="12" width="10" height="2"/><rect x="1" y="9" width="2" height="4"/></svg>'
   };
   return icons[name] || '';
 }
 
 // ---- LOGOUT ----
 function logout() {
-  localStorage.removeItem('claude_user');
+  localStorage.removeItem('AI_user');
   state.currentUser = null;
   document.getElementById('login-username').value = '';
   document.getElementById('login-password').value = '';
@@ -218,12 +247,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // sidebar nav
   document.getElementById('sn-newchat').onclick = () => show('s-chat');
-  document.getElementById('sn-chats').onclick = () => show('s-chat');
   document.querySelectorAll('.go-settings').forEach(el => el.onclick = () => show('s-settings'));
 
   // chat
-  document.querySelectorAll('.go-sidebar').forEach(el => el.onclick = () => show('s-sidebar'));
-  document.getElementById('btn-send').onclick = sendMessage;
+  // Мобильный фикс: клик по бургеру .go-sidebar теперь не просто свитчит экран, а аккуратно триггерит класс active для плашки шторки
+  document.querySelectorAll('.go-sidebar').forEach(el => el.onclick = () => {
+    const sidebar = document.getElementById('s-sidebar');
+    if (window.innerWidth <= 768) {
+      sidebar.classList.toggle('active');
+    } else {
+      show('s-sidebar');
+    }
+  });
+
   document.getElementById('chat-input').addEventListener('keydown', e => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
   });
@@ -237,9 +273,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // profile back
   document.getElementById('back-profile').onclick = () => show('s-settings');
-  document.getElementById('btn-save-prefs').onclick = () => {
-    // could push to firebase
-    show('s-settings');
+
+  // КНОПКА СОХРАНЕНИЯ В FIREBASE
+  const prefsTextarea = document.getElementById('pf-prefs');
+  document.getElementById('btn-save-prefs').onclick = async () => {
+    const currentUser = localStorage.getItem('AI_user');
+
+    if (!currentUser) {
+      alert('Пользователь не авторизован!');
+      show('s-login');
+      return;
+    }
+
+    const prefsValue = prefsTextarea.value.trim();
+
+    try {
+      await set(ref(db, `users/${currentUser}/preferences`), prefsValue);
+      show('s-settings');
+    } catch (error) {
+      console.error("Ошибка сохранения настроек:", error);
+      alert("Не удалось сохранить настройки в Firebase: " + error.message);
+    }
   };
 
   tryAutoLogin();

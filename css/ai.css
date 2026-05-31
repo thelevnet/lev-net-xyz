@@ -1,519 +1,474 @@
-* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-
+/* ==========================================================================
+   1. ПЕРЕМЕННЫЕ И ШРИФТЫ (ТВОЯ ПАЛИТРА)
+   ========================================================================== */
 :root {
-  --bg: #1a1a1a;
-  --bg2: #242424;
-  --bg3: #2e2e2e;
-  --surface: #2a2a2a;
-  --border: #333;
-  --text: #f0f0f0;
-  --text2: #888;
-  --accent: #e8714a;
-  --blue: #4a9eff;
-  --green: #34c759;
-  --danger: #ff453a;
-  --r: 14px;
-  --font-serif: 'Georgia', serif;
-  --font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+    --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    --bg: #FAF8F5;
+    --surface: #FFFFFF;
+    --surface-2: #F2EFE9;
+    --border: #E8E2D9;
+    --primary: #C5A8D6;
+    --secondary: #A8C8D6;
+    --accent: #D6A8B8;
+    --text-1: #2C2825;
+    --text-2: #6B6460;
+    --text-3: #A09890;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
 }
 
 html, body {
-  height: 100%;
-  background: #111;
-  color: var(--text);
-  font-family: var(--font);
-  overflow: hidden;
+    height: 100%;
 }
 
-/* ---- PHONE SHELL ---- */
-.phone {
-  width: 100%;        /* Было: 390px */
-  height: 100%;       /* Было: 844px */
-  position: absolute;
-  top: 0;             /* Было: 50% */
-  left: 0;            /* Было: 50% */
-  transform: none;    /* Было: translate(-50%, -50%) */
-  background: var(--bg);
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  border-radius: 0;   /* Было: 44px (убираем скругления смартфона) */
-  box-shadow: none;   /* Было: 0 40px 120px... (убираем тень телефона) */
+body {
+    background-color: var(--bg);
+    color: var(--text-1);
+    font-family: "Tiny5", sans-serif;
+    font-size: 1.5rem;
+    line-height: 1.2;
+    overflow: hidden;
 }
 
-/* ---- STATUS BAR ---- */
+/* ЗАДНИЙ ФОН САКУРЫ (ПРОСВЕЧИВАЕТ ТОЛЬКО В ЧАТЕ) */
+body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: url('../pic/sakura.gif') no-repeat center center;
+    background-size: cover;
+    z-index: -1;
+}
+
 .statusbar {
-  display: none;      /* Было: flex (просто прячем его за ненадобностью) */
-}
-.sb-right { display:flex; gap:5px; align-items:center; }
-.battery-pill {
-  background: var(--text);
-  color: var(--bg);
-  border-radius: 4px;
-  padding: 1px 5px;
-  font-size: 11px;
-  font-weight: 800;
+    display: none !important;
 }
 
-/* ---- SCREENS ---- */
-.screen {
-  display: none;
-  flex-direction: column;
-  flex: 1;
-  overflow: hidden;
-  position: absolute;
-  top: 0;             /* Было: 52px (так как статус-бара больше нет) */
-  left: 0; right: 0; bottom: 0;
-  background: var(--bg);
-}
-.screen.active { display: flex; }
-
-/* ====== LOGIN ====== */
-#s-login {
-  justify-content: space-between;
-  align-items: center;
-  padding: 30px 28px 44px;
-}
-.login-top {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-}
-.asterisk-svg {
-  color: var(--accent);
-  animation: rot 10s linear infinite;
-}
-@keyframes rot { to { transform: rotate(360deg); } }
-.app-name {
-  font-family: var(--font-serif);
-  font-size: 38px;
-  font-weight: 400;
-}
-.login-sub {
-  font-family: var(--font-serif);
-  font-size: 26px;
-  font-weight: 400;
-  text-align: center;
-  line-height: 1.35;
-}
-.login-form {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.field-label {
-  font-size: 12px;
-  color: var(--text2);
-  margin-bottom: 4px;
-  font-weight: 600;
-  letter-spacing: .5px;
-  text-transform: uppercase;
-}
-.field-input {
-  width: 100%;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--r);
-  padding: 14px 16px;
-  font-size: 15px;
-  color: var(--text);
-  font-family: var(--font);
-  outline: none;
-  transition: border-color .15s;
-}
-.field-input:focus { border-color: var(--accent); }
-.btn-primary {
-  width: 100%;
-  background: var(--accent);
-  color: white;
-  border: none;
-  border-radius: 50px;
-  padding: 16px;
-  font-size: 16px;
-  font-weight: 700;
-  cursor: pointer;
-  font-family: var(--font);
-  transition: opacity .15s;
-}
-.btn-primary:active { opacity: .8; }
-.login-switch {
-  text-align: center;
-  font-size: 14px;
-  color: var(--text2);
-}
-.login-switch span {
-  color: var(--accent);
-  cursor: pointer;
-  font-weight: 600;
-}
-.login-error {
-  color: var(--danger);
-  font-size: 13px;
-  text-align: center;
-  min-height: 18px;
-}
-.anthropic-tag {
-  color: var(--text2);
-  font-size: 11px;
-  letter-spacing: 2.5px;
-  font-weight: 700;
+/* ==========================================================================
+   2. ДЕСКТОПНАЯ СЕТКА (БЕЗ БЛЮРА)
+   ========================================================================== */
+.phone {
+    width: 100vw;
+    height: 100vh;
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    grid-template-rows: 100vh;
+    background: transparent;
 }
 
-/* ====== SIDEBAR ====== */
+/* --- САЙДБАР (ЧИСТО БЕЛЫЙ) --- */
 #s-sidebar {
-  padding-bottom: 0;
+    grid-column: 1;
+    height: 100vh;
+    border-right: 0.3rem solid var(--border);
+    padding: 2.5rem 1.5rem;
+    background: var(--surface) !important;
+
+    display: flex !important;
+    flex-direction: column;
+    z-index: 10;
 }
+
 .sidebar-title {
-  font-family: var(--font-serif);
-  font-size: 34px;
-  font-weight: 400;
-  padding: 10px 20px 16px;
+    font-size: 4rem;
+    color: var(--text-1);
+    margin-bottom: 2rem;
 }
-.sidebar-scroll { flex:1; overflow-y:auto; scrollbar-width:none; }
-.sidebar-scroll::-webkit-scrollbar { display:none; }
-.sn-item {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 13px 20px;
-  font-size: 16px;
-  cursor: pointer;
-  border-radius: 12px;
-  margin: 0 8px;
-  transition: background .1s;
+
+.sidebar-scroll {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    flex: 1;
+    overflow-y: auto;
 }
-.sn-item:active { background: var(--bg2); }
-.sn-item.accent { color: var(--accent); font-weight: 500; }
-.sn-sep { height: 1px; background: var(--border); margin: 8px 20px; }
+
 .sn-label {
-  padding: 6px 20px 2px;
-  font-size: 12px;
-  color: var(--text2);
-  font-weight: 700;
-  letter-spacing: .8px;
-  text-transform: uppercase;
+    font-size: 1.5rem;
+    color: var(--text-2);
+    margin: 1.5rem 0 0.5rem;
+    text-transform: uppercase;
 }
-.sn-recent {
-  padding: 11px 20px;
-  font-size: 15px;
-  cursor: pointer;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  border-radius: 12px;
-  margin: 0 8px;
-  transition: background .1s;
+
+.sn-item, .sn-recent, .srow {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    color: var(--text-1);
+    cursor: pointer;
+    transition: color var(--transition);
 }
-.sn-recent:active { background: var(--bg2); }
+
+.sn-item:hover, .sn-recent:hover, .srow:hover {
+    color: var(--secondary);
+}
+
+#sn-newchat {
+    color: var(--secondary);
+}
+
 .sidebar-footer {
-  padding: 12px 20px;
-  border-top: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding-top: 1rem;
+    border-top: 0.3rem solid var(--border);
+    margin-top: auto;
 }
+
 .avatar-circle {
-  width: 34px; height: 34px;
-  border-radius: 50%;
-  background: var(--bg3);
-  display: flex; align-items:center; justify-content:center;
-  font-weight: 800; font-size: 15px;
-  color: var(--text);
-  flex-shrink: 0;
-  cursor: pointer;
+    width: 3rem;
+    height: 3rem;
+    border: 0.3rem solid var(--border);
+    background: var(--surface-2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
 }
-.footer-user { flex:1; font-size:15px; color:var(--text2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
-/* ====== CHAT ====== */
-#s-chat { }
+.footer-user {
+    color: var(--text-2);
+    flex: 1;
+}
+
+/* --- БАЗОВЫЙ ЭКРАН (УБИРАЕМ НАЛОЖЕНИЯ) --- */
+.screen {
+    grid-column: 2;
+    height: 100vh;
+    padding: 3rem 4rem;
+    display: none;
+    flex-direction: column;
+}
+
+.screen.active {
+    display: flex !important;
+}
+
+.chat-topbar .go-sidebar,
+.page-header .go-sidebar {
+    display: none !important;
+}
+
+/* ==========================================================================
+   3. ЭКРАН ЧАТА (ПРОЗРАЧНЫЙ, С САКУРОЙ НА ФОНЕ)
+   ========================================================================== */
+#s-chat.screen {
+    background: transparent !important; /* Просвечивает гифка */
+}
+
 .chat-topbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 16px;
-  flex-shrink: 0;
+    display: flex;
+    justify-content: flex-end;
+    padding-bottom: 1rem;
+    border-bottom: 0.3rem solid var(--border);
+    margin-bottom: 1.5rem;
 }
-.upgrade-strip {
-  margin: 0 14px 10px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 10px 14px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 13px;
-  flex-shrink: 0;
-}
-.upgrade-strip .ulink { color: var(--blue); font-weight: 600; cursor:pointer; }
+
 .chat-body {
-  flex: 1;
-  overflow-y: auto;
-  padding: 12px 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  scrollbar-width: none;
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
 }
-.chat-body::-webkit-scrollbar { display:none; }
+
 .chat-empty-state {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 14px;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
+
 .chat-greeting {
-  font-family: var(--font-serif);
-  font-size: 24px;
-  color: var(--text);
+    font-size: 4rem;
 }
+
+.msg-user, .msg-ai {
+    max-width: 75%;
+    font-size: 1.8rem;
+    word-wrap: break-word;
+}
+
 .msg-user {
-  align-self: flex-end;
-  background: var(--bg3);
-  border-radius: 18px 18px 4px 18px;
-  padding: 11px 15px;
-  max-width: 78%;
-  font-size: 15px;
-  line-height: 1.5;
+    align-self: flex-end;
+    text-align: right;
+    color: var(--text-1);
 }
+
 .msg-ai {
-  align-self: flex-start;
-  font-size: 15px;
-  line-height: 1.6;
-  max-width: 94%;
+    align-self: flex-start;
+    color: var(--text-2);
 }
-.msg-meta {
-  display: flex;
-  gap: 16px;
-  margin-top: 8px;
-  color: var(--text2);
+
+.chat-input-wrap {
+    padding-top: 1.5rem;
 }
-.msg-meta svg { cursor:pointer; }
-.ai-note {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 14px;
-  color: var(--text2);
-  font-size: 13px;
-  text-align: right;
-  flex-shrink: 0;
-}
-/* INPUT */
-.chat-input-wrap { padding: 10px 14px 20px; flex-shrink:0; }
+
 .chat-input-box {
-  background: var(--bg2);
-  border-radius: 22px;
-  padding: 13px 16px;
-  font-size: 15px;
-  color: var(--text2);
-  margin-bottom: 10px;
-  min-height: 48px;
-  cursor: text;
-  outline: none;
-  line-height: 1.4;
-}
-.chat-input-box:empty::before {
-  content: attr(data-ph);
-  color: var(--text2);
-}
-.chat-controls {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.cc-left { display:flex; gap:8px; align-items:center; }
-.cc-right { display:flex; gap:8px; }
-.btn-circle {
-  width: 38px; height: 38px;
-  border-radius: 50%;
-  background: var(--bg3);
-  display: flex; align-items:center; justify-content:center;
-  cursor: pointer;
-  flex-shrink: 0;
-}
-.btn-circle.white { background: var(--text); }
-.btn-circle.white svg { color: var(--bg); }
-.model-tag {
-  background: var(--bg3);
-  border-radius: 50px;
-  padding: 7px 14px;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
+    width: 100%;
+    min-height: 4rem;
+    background: var(--surface);
+    border: 0.3rem solid var(--border);
+    padding: 0.75rem 1rem;
+    font-family: "Tiny5", sans-serif;
+    font-size: 1.8rem;
+    color: var(--text-1);
+    outline: none;
 }
 
-/* ====== SETTINGS ====== */
-#s-settings { overflow-y:auto; scrollbar-width:none; }
-#s-settings::-webkit-scrollbar { display:none; }
+.chat-input-box:focus {
+    border-color: var(--secondary);
+}
+
+.chat-input-box:empty:before {
+    content: attr(data-ph);
+    color: var(--text-3);
+}
+
+/* ==========================================================================
+   4. ЭКРАНЫ НАСТРОЕК И ПРОФИЛЯ (ПОЛНОСТЬЮ БЕЛЫЕ)
+   ========================================================================== */
+#s-settings.screen,
+#s-profile.screen {
+    background: var(--surface) !important; /* Перекрывают сакуру белым фоном */
+}
+
 .page-header {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 10px 20px 6px;
-  position: relative;
-  flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    padding-bottom: 1rem;
+    border-bottom: 0.3rem solid var(--border);
+    margin-bottom: 2rem;
 }
-.page-title { font-size: 17px; font-weight: 700; }
+
+.page-title {
+    font-size: 4rem;
+    color: var(--secondary);
+}
+
 .page-back {
-  position: absolute;
-  left: 16px;
-  cursor: pointer;
-  color: var(--accent);
-  font-size: 15px;
-  display: flex;
-  align-items: center;
-  gap: 3px;
+    position: absolute;
+    left: 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-1);
 }
-.page-info {
-  position: absolute;
-  right: 16px;
-  width: 26px; height: 26px;
-  border-radius: 50%;
-  border: 1.5px solid var(--text2);
-  display: flex; align-items:center; justify-content:center;
-  font-size: 13px;
-  color: var(--text2);
-  cursor: pointer;
-}
+
+.page-back:hover { color: var(--secondary); }
+
 .settings-account {
-  margin: 8px 14px;
-  background: var(--surface);
-  border-radius: var(--r);
-  padding: 14px 16px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 14px;
+    font-size: 2.5rem;
+    margin-bottom: 1.5rem;
 }
-.free-tag {
-  background: var(--bg3);
-  border-radius: 50px;
-  padding: 3px 12px;
-  font-size: 13px;
-  font-weight: 700;
-}
-.upgrade-card {
-  margin: 8px 14px;
-  background: var(--surface);
-  border-radius: var(--r);
-  padding: 16px;
-}
-.upgrade-card h3 { font-size:15px; margin-bottom:4px; }
-.upgrade-card p { font-size:13px; color:var(--text2); margin-bottom:12px; }
-.btn-upgrade {
-  background: var(--text);
-  color: var(--bg);
-  border: none;
-  border-radius: 50px;
-  padding: 9px 20px;
-  font-size: 14px;
-  font-weight: 700;
-  cursor: pointer;
-  font-family: var(--font);
-}
+
 .sgroup {
-  margin: 8px 14px;
-  background: var(--surface);
-  border-radius: var(--r);
-  overflow: hidden;
-}
-.srow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 13px 16px;
-  font-size: 15px;
-  cursor: pointer;
-  border-bottom: 1px solid var(--border);
-  transition: background .1s;
-}
-.srow:last-child { border-bottom:none; }
-.srow:active { background: var(--bg3); }
-.srow-sub { font-size:13px; color:var(--text2); margin-top:1px; }
-.toggle-sw {
-  width: 48px; height: 28px;
-  background: var(--green);
-  border-radius: 14px;
-  position: relative;
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: background .2s;
-}
-.toggle-sw.off { background: #555; }
-.toggle-sw::after {
-  content:'';
-  position:absolute;
-  right:3px; top:3px;
-  width:22px; height:22px;
-  background:white;
-  border-radius:50%;
-  transition: transform .2s;
-}
-.toggle-sw.off::after { transform: translateX(-20px); }
-.logout-row {
-  margin: 8px 14px;
-  padding: 13px 16px;
-  color: var(--danger);
-  font-size:15px;
-  cursor:pointer;
-  display:flex;
-  align-items:center;
-  gap:10px;
+    border: 0.3rem solid var(--border);
+    background: var(--surface-2); /* Чуть темнее на белом фоне */
+    margin-bottom: 1.5rem;
 }
 
-/* ====== PROFILE ====== */
-#s-profile { overflow-y:auto; scrollbar-width:none; }
-#s-profile::-webkit-scrollbar { display:none; }
-.profile-body { padding:16px; display:flex; flex-direction:column; gap:14px; }
-.pf-input {
-  width:100%;
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:var(--r);
-  padding:13px 15px;
-  font-size:15px;
-  color:var(--text);
-  font-family:var(--font);
-  outline:none;
-  transition:border-color .15s;
+.sgroup .srow {
+    justify-content: space-between;
+    padding: 1rem;
+    border-bottom: 0.3rem solid var(--border);
 }
-.pf-input:focus { border-color:var(--accent); }
+
+.sgroup .srow:last-child {
+    border-bottom: none;
+}
+
+.srow-sub {
+    font-size: 1.2rem;
+    color: var(--text-3);
+}
+
+.field-label, .section-lbl {
+    font-size: 1.5rem;
+    color: var(--text-2);
+    margin-bottom: 0.5rem;
+}
+
+.field-input, .pf-input, .pf-textarea {
+    width: 100%;
+    background: var(--surface);
+    border: 0.3rem solid var(--border);
+    padding: 0.75rem;
+    font-family: "Tiny5", sans-serif;
+    font-size: 1.6rem;
+    color: var(--text-1);
+    outline: none;
+    margin-bottom: 1rem;
+}
+
+.field-input:focus, .pf-input:focus, .pf-textarea:focus {
+    border-color: var(--secondary);
+}
+
 .pf-textarea {
-  width:100%;
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:var(--r);
-  padding:13px 15px;
-  font-size:14px;
-  color:var(--text);
-  font-family:var(--font);
-  outline:none;
-  resize:none;
-  min-height:90px;
-  line-height:1.5;
-  transition:border-color .15s;
+    min-height: 8rem;
+    resize: none;
 }
-.pf-textarea:focus { border-color:var(--accent); }
-.btn-secondary {
-  width:100%;
-  background:var(--bg3);
-  color:var(--text2);
-  border:none;
-  border-radius:var(--r);
-  padding:14px;
-  font-size:15px;
-  font-weight:700;
-  cursor:pointer;
-  font-family:var(--font);
-  transition: background .15s, color .15s;
-}
-.btn-secondary:active { background:var(--border); color:var(--text); }
-.section-lbl { font-size:13px; color:var(--text2); padding:4px 0; }
 
-/* scrollbar global */
-* { scrollbar-width:none; }
+.btn-primary, .btn-secondary {
+    background: var(--surface);
+    border: 0.3rem solid var(--border);
+    color: var(--text-1);
+    font-family: "Tiny5", sans-serif;
+    font-size: 1.5rem;
+    padding: 0.5rem 1.5rem;
+    cursor: pointer;
+    transition: border-color var(--transition);
+}
+
+.btn-primary:hover, .btn-secondary:hover {
+    border-color: var(--secondary);
+}
+
+.btn-secondary {
+    width: 100%;
+    margin-bottom: 1rem;
+}
+
+.logout-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border: 0.3rem solid #C96868;
+    background: var(--surface);
+    color: #C96868;
+    padding: 0.5rem 1.5rem;
+    font-size: 1.5rem;
+    cursor: pointer;
+    width: max-content;
+    margin-top: 1rem;
+}
+
+.logout-row:hover {
+    background: #C96868;
+    color: #fff;
+}
+
+/* Логин тоже белый */
+#s-login.screen {
+    grid-column: 1 / span 2;
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 999;
+    background: var(--surface) !important;
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
+#s-login.screen.active { display: flex !important; }
+
+/* ==========================================================================
+   5. ЧИСТЫЙ МОБИЛЬНЫЙ АДАПТИВ (БЕЗ ОВЕРЛАПОВ)
+   ========================================================================== */
+@media (max-width: 768px) {
+    .phone {
+        display: block !important;
+    }
+
+    /* Сайдбар на мобилке — белый */
+    #s-sidebar {
+        position: fixed !important;
+        inset: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        grid-column: unset;
+        background: var(--surface) !important;
+        display: none !important;
+        z-index: 999;
+    }
+
+    #s-sidebar.active {
+        display: flex !important;
+    }
+
+    /* Мобильные экраны */
+    .screen {
+        position: fixed !important;
+        inset: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        grid-column: unset;
+        padding: 6rem 1.5rem 1.5rem;
+        display: none !important;
+        z-index: 5;
+    }
+
+    /* Мобильный чат — прозрачный, под сакуру */
+    #s-chat.screen.active {
+        display: flex !important;
+        background: transparent !important;
+    }
+
+    /* Настройки и профиль на мобилке — белые */
+    #s-settings.screen.active,
+    #s-profile.screen.active {
+        display: flex !important;
+        background: var(--surface) !important;
+    }
+
+    .chat-topbar {
+        position: absolute;
+        top: 1rem; left: 1.5rem; right: 1.5rem;
+        justify-content: space-between;
+    }
+
+    .chat-topbar .go-sidebar,
+    .page-header .go-sidebar {
+        display: flex !important;
+    }
+
+    .msg-user, .msg-ai {
+        max-width: 90%;
+    }
+
+    .logout-row {
+        width: 100%;
+        justify-content: center;
+
+
+}
+/* Стили для плавающего гамбургера на мобилке */
+#mobile-hamburger {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    /* Полностью убираем десктопный топбар чата */
+    .chat-topbar {
+        display: none !important;
+    }
+
+    /* Превращаем гамбургер в фиксированную кнопку в левом верхнем углу */
+    #mobile-hamburger {
+        display: flex !important;
+        position: fixed;
+        top: 1.5rem;
+        left: 1.5rem;
+        width: 3.5rem;
+        height: 3.5rem;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        z-index: 90; /* Выше чата, но ниже открытого сайдбара */
+    }
+
+    /* Подвинем тело чата чуть ниже, чтобы текст сообщений не лез под кнопку */
+    #s-chat.screen {
+        padding: 6.5rem 1.5rem 1.5rem !important;
+    }
+}

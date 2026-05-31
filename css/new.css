@@ -211,3 +211,51 @@ p { color: var(--text-3); }
         flex: unset;
     }
 }
+/* ── OVERLAY ── */
+#nav-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 99;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    background: rgba(0,0,0,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--transition);
+}
+#nav-overlay.open {
+    opacity: 1;
+    pointer-events: all;
+}
+.nav-menu {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2rem;
+}
+.nav-menu a {
+    font-family: "Tiny5", sans-serif;
+    font-size: 4rem;
+    color: var(--text-1);
+    text-decoration: none;
+    transition: color var(--transition);
+}
+.nav-menu a:hover { color: var(--secondary); }
+
+/* бургер → крестик */
+.hdr-burger.active span:nth-child(1) {
+    transform: translateY(10px) rotate(45deg);
+}
+.hdr-burger.active span:nth-child(2) {
+    opacity: 0;
+}
+.hdr-burger.active span:nth-child(3) {
+    transform: translateY(-10px) rotate(-45deg);
+}
+.hdr-burger span {
+    transition: transform var(--transition), opacity var(--transition);
+    transform-origin: center;
+}

@@ -34,3 +34,36 @@
 
     show(0);
 })();
+console.log("Hello, why are you reading my Console... It's MY Console.");
+(function () {
+    const burger = document.querySelector('.hdr-burger');
+    const overlay = document.createElement('div');
+    overlay.id = 'nav-overlay';
+    overlay.innerHTML = `
+        <nav class="nav-menu">
+            <a href="../">Home</a>
+            <a href="../chat/">Chat</a>
+            <a href="../ai/">AI</a>
+        </nav>
+    `;
+    document.body.appendChild(overlay);
+
+    burger.addEventListener('click', () => {
+        overlay.classList.toggle('open');
+        burger.classList.toggle('active');
+    });
+
+    overlay.addEventListener('click', e => {
+        if (e.target === overlay) {
+            overlay.classList.remove('open');
+            burger.classList.remove('active');
+        }
+    });
+
+    overlay.querySelectorAll('a').forEach(a => {
+        a.addEventListener('click', () => {
+            overlay.classList.remove('open');
+            burger.classList.remove('active');
+        });
+    });
+})();

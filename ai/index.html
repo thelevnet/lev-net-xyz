@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+    <title>AI</title>
+    <link rel="stylesheet" href="../css/ai.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Tiny5&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<div class="phone">
+
+    <div class="statusbar">
+        <span class="time">16:37</span>
+        <div class="sb-right">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                <rect x="6" y="2" width="4" height="6" />
+                <rect x="4" y="5" width="1" height="4" />
+                <rect x="11" y="5" width="1" height="4" />
+                <rect x="7" y="10" width="2" height="2" />
+                <rect x="5" y="12" width="6" height="1" />
+                <rect x="2" y="2" width="1" height="1" />
+                <rect x="4" y="4" width="1" height="1" />
+                <rect x="6" y="6" width="1" height="1" />
+                <rect x="9" y="9" width="1" height="1" />
+                <rect x="11" y="11" width="1" height="1" />
+                <rect x="13" y="13" width="1" height="1" />
+            </svg>
+
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                <rect x="6" y="12" width="4" height="2" />
+                <rect x="4" y="9" width="8" height="2" />
+                <rect x="2" y="6" width="12" height="2" />
+                <rect x="0" y="3" width="16" height="2" />
+            </svg>
+
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                <rect x="1" y="12" width="2" height="3" />
+                <rect x="5" y="9" width="2" height="6" />
+                <rect x="9" y="5" width="2" height="10" />
+                <rect x="13" y="1" width="2" height="14" opacity=".3" />
+            </svg>
+            <div class="battery-pill">25</div>
+        </div>
+    </div>
+
+    <div id="s-login" class="screen">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:10px;padding-top:10px;">
+            <div class="app-name">AI</div>
+        </div>
+
+        <div class="login-sub" style="margin:8px 0 20px;">Do your best work<br>with AI</div>
+
+        <div style="position:relative;margin:0 28px 18px;display:flex;">
+            <div id="tab-login" style="flex:1;text-align:center;padding:8px 0;font-size:15px;font-weight:600;cursor:pointer;color:var(--text)">Sign in</div>
+            <div id="tab-register" style="flex:1;text-align:center;padding:8px 0;font-size:15px;font-weight:600;cursor:pointer;color:var(--text2)">Create account</div>
+            <div style="position:absolute;bottom:0;left:0;width:50%;height:2px;background:var(--accent);border-radius:2px;transition:transform .25s;" id="tab-line"></div>
+        </div>
+
+        <div id="pane-login" style="display:flex;flex-direction:column;gap:12px;padding:0 28px;">
+            <div>
+                <div class="field-label">Username</div>
+                <input id="login-username" class="field-input" type="text" placeholder="your username" autocomplete="username">
+            </div>
+            <div>
+                <div class="field-label">Password</div>
+                <input id="login-password" class="field-input" type="password" placeholder="••••••••" autocomplete="current-password">
+            </div>
+            <div id="login-error" class="login-error"></div>
+            <button id="btn-login" class="btn-primary">Sign in</button>
+        </div>
+
+        <div id="pane-register" style="display:none;flex-direction:column;gap:12px;padding:0 28px;">
+            <div>
+                <div class="field-label">Username</div>
+                <input id="reg-username" class="field-input" type="text" placeholder="choose a username" autocomplete="username">
+            </div>
+            <div>
+                <div class="field-label">Password</div>
+                <input id="reg-password" class="field-input" type="password" placeholder="min 4 chars" autocomplete="new-password">
+            </div>
+            <div id="reg-error" class="login-error"></div>
+            <button id="btn-register" class="btn-primary">Create account</button>
+        </div><br>
+
+        <div class="anthropic-tag" style="margin-top:auto;padding-bottom:8px;">lev-net.xyz</div>
+    </div>
+
+    <div id="s-sidebar" class="screen">
+        <div class="sidebar-title">AI</div>
+        <div class="sidebar-scroll">
+            <div class="sn-item accent" id="sn-newchat">
+                <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor">
+                    <rect x="1" y="2" width="14" height="10" />
+                    <rect x="3" y="12" width="4" height="2" />
+                    <rect x="2" y="14" width="2" height="2" />
+                    <rect x="7" y="4" width="2" height="6" fill="var(--surface)" />
+                    <rect x="5" y="6" width="6" height="2" fill="var(--surface)" />
+                </svg>
+                New chat
+            </div>
+            <div class="sn-sep"></div>
+            <div class="sn-label">Recents</div>
+            <div id="recent-list"></div>
+        </div>
+        <div class="sidebar-footer">
+            <div class="avatar-circle go-settings"><span class="avatar-letter">L</span></div>
+            <div class="footer-user username-display">@user</div>
+            <svg class="go-settings" width="20" height="20" viewBox="0 0 16 16" fill="currentColor" style="cursor:pointer">
+                <rect x="6" y="0" width="4" height="16" />
+                <rect x="0" y="6" width="16" height="4" />
+                <rect x="2" y="2" width="12" height="12" />
+                <rect x="4" y="4" width="8" height="8" fill="var(--surface)" />
+                <rect x="6" y="6" width="4" height="4" />
+            </svg>
+        </div>
+    </div>
+
+    <div id="s-chat" class="screen">
+        <div class="btn-circle go-sidebar" id="mobile-hamburger">
+            <svg width="22" height="22" viewBox="0 0 16 16" fill="currentColor">
+                <rect x="1" y="3" width="14" height="2" />
+                <rect x="1" y="7" width="10" height="2" />
+                <rect x="1" y="11" width="14" height="2" />
+            </svg>
+        </div>
+
+        <div id="chat-body" class="chat-body">
+            <div id="chat-empty" class="chat-empty-state">
+                <div class="chat-greeting">Hello, <span class="username-display">-</span></div>
+            </div>
+        </div>
+
+        <div class="chat-input-wrap">
+            <div id="chat-input" class="chat-input-box" contenteditable="true" data-ph="Chat with AI..." style="color:var(--text);"></div>
+        </div>
+    </div>
+
+    <div id="s-settings" class="screen">
+        <div class="page-header">
+            <div class="btn-circle go-sidebar" style="position:absolute;left:12px;background:transparent;">
+                <svg width="22" height="22" viewBox="0 0 16 16" fill="currentColor">
+                    <rect x="1" y="3" width="14" height="2" />
+                    <rect x="1" y="7" width="10" height="2" />
+                    <rect x="1" y="11" width="14" height="2" />
+                </svg>
+            </div>
+            <div class="page-title">Settings</div>
+        </div>
+
+        <div class="settings-account">
+            <span class="username-display">@user</span>
+        </div>
+
+        <div class="sgroup">
+            <div class="srow" id="go-profile">
+                <span>Profile</span>
+                <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor">
+                    <rect x="4" y="2" width="2" height="2" />
+                    <rect x="6" y="4" width="2" height="2" />
+                    <rect x="8" y="6" width="2" height="4" />
+                    <rect x="6" y="10" width="2" height="2" />
+                    <rect x="4" y="12" width="2" height="2" />
+                </svg>
+            </div>
+            <div class="srow">
+                <div><div>Theme</div><div class="srow-sub">System</div></div>
+                <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor">
+                    <rect x="4" y="2" width="2" height="2" />
+                    <rect x="6" y="4" width="2" height="2" />
+                    <rect x="8" y="6" width="2" height="4" />
+                    <rect x="6" y="10" width="2" height="2" />
+                    <rect x="4" y="12" width="2" height="2" />
+                </svg>
+            </div>
+        </div>
+
+        <div class="logout-row" id="btn-logout">
+            <svg width="17" height="17" viewBox="0 0 16 16" fill="currentColor">
+                <rect x="1" y="1" width="7" height="2" />
+                <rect x="1" y="3" width="2" height="10" />
+                <rect x="1" y="13" width="7" height="2" />
+                <rect x="8" y="7" width="6" height="2" />
+                <rect x="11" y="4" width="2" height="2" />
+                <rect x="13" y="6" width="2" height="4" />
+                <rect x="11" y="10" width="2" height="2" />
+            </svg>
+            Log out
+        </div>
+    </div>
+
+    <div id="s-profile" class="screen">
+        <div class="page-header">
+            <div class="page-back" id="back-profile">
+                <svg width="12" height="16" viewBox="0 0 16 16" fill="currentColor" style="vertical-align: middle; margin-right: 4px;">
+                    <rect x="10" y="2" width="2" height="2" />
+                    <rect x="8" y="4" width="2" height="2" />
+                    <rect x="6" y="6" width="2" height="4" />
+                    <rect x="8" y="10" width="2" height="2" />
+                    <rect x="10" y="12" width="2" height="2" />
+                </svg>
+                Back
+            </div>
+            <div class="page-title">Profile</div>
+        </div>
+        <div class="profile-body">
+            <div>
+                <div class="field-label">Username</div>
+                <input id="pf-username" class="pf-input" type="text" readonly style="opacity:.6;">
+            </div>
+            <button class="btn-secondary">Update Profile</button>
+
+            <div style="margin-top:4px;">
+                <div style="font-size:15px;font-weight:700;margin-bottom:3px;">What personal preferences should the AI consider?</div>
+                <div class="section-lbl">Applies to all conversations.</div>
+                <textarea id="pf-prefs" class="pf-textarea" placeholder="e.g. be concise..."></textarea>
+            </div>
+            <button class="btn-secondary" id="btn-save-prefs">Save Preferences</button>
+            <div class="section-lbl">Account Actions</div>
+        </div>
+    </div>
+
+</div><script type="module" src="../js/ai.js"></script>
+</body>
+</html>

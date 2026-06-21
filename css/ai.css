@@ -24,6 +24,10 @@
 
 html, body {
     height: 100%;
+    height: 100dvh;
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
 }
 
 body {
@@ -33,6 +37,11 @@ body {
     font-size: 1.5rem;
     line-height: 1.2;
     overflow: hidden;
+    height: 100%;
+    height: 100dvh;
+    /* Added to prevent scrolling when keyboard is up */
+    position: fixed;
+    width: 100%;
 }
 
 /* ЗАДНИЙ ФОН САКУРЫ (ПРОСВЕЧИВАЕТ ТОЛЬКО В ЧАТЕ) */
@@ -54,17 +63,19 @@ body::before {
    ========================================================================== */
 .phone {
     width: 100vw;
-    height: 100vh;
+    height: 100%;
+    height: 100dvh;
     display: grid;
     grid-template-columns: 320px 1fr;
-    grid-template-rows: 100vh;
+    grid-template-rows: 100%;
     background: transparent;
 }
 
 /* --- САЙДБАР (ЧИСТО БЕЛЫЙ) --- */
 #s-sidebar {
     grid-column: 1;
-    height: 100vh;
+    height: 100%;
+    height: 100dvh;
     border-right: 0.3rem solid var(--border);
     padding: 2.5rem 1.5rem;
     background: var(--surface) !important;
@@ -141,7 +152,8 @@ body::before {
 /* --- БАЗОВЫЙ ЭКРАН (УБИРАЕМ НАЛОЖЕНИЯ) --- */
 .screen {
     grid-column: 2;
-    height: 100vh;
+    height: 100%;
+    height: 100dvh;
     padding: 3rem 4rem;
     display: none;
     flex-direction: column;
@@ -194,17 +206,69 @@ body::before {
     max-width: 75%;
     font-size: 1.8rem;
     word-wrap: break-word;
+    padding: 1rem;
+    position: relative;
+    /* NES-style pixel border */
+    border: 0.3rem solid var(--border);
+    background: var(--surface);
+    /* Insetting the border with negative box-shadow to create the "corners" */
+    margin: 1.5rem;
+    display: flex;
+    flex-direction: column;
+}
+
+.msg-content {
+    flex: 1;
+}
+
+.msg-meta {
+    display: flex;
+    gap: 1rem;
+    margin-top: 0.8rem;
+    opacity: 0.4;
+    transition: opacity 0.2s;
+}
+
+.msg-user .msg-meta {
+    justify-content: flex-start;
+}
+
+.msg-ai .msg-meta {
+    justify-content: flex-start;
+}
+
+.msg-user:hover .msg-meta,
+.msg-ai:hover .msg-meta {
+    opacity: 1;
+}
+
+.msg-btn {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.4rem;
+    height: 2.4rem;
+    border: 0.2rem solid transparent;
+}
+
+.msg-btn:hover {
+    border-color: var(--text-1);
+    background: rgba(0,0,0,0.05);
 }
 
 .msg-user {
     align-self: flex-end;
-    text-align: right;
+    text-align: left;
     color: var(--text-1);
+    border: 0.3rem solid #86a9b8;
+    background: var(--secondary);
 }
 
 .msg-ai {
     align-self: flex-start;
-    color: var(--text-2);
+    color: var(--text-1);
+    background: var(--surface);
 }
 
 .chat-input-wrap {
@@ -385,7 +449,8 @@ body::before {
         position: fixed !important;
         inset: 0 !important;
         width: 100vw !important;
-        height: 100vh !important;
+        height: 100% !important;
+        height: 100dvh !important;
         grid-column: unset;
         background: var(--surface) !important;
         display: none !important;
@@ -401,11 +466,13 @@ body::before {
         position: fixed !important;
         inset: 0 !important;
         width: 100vw !important;
-        height: 100vh !important;
+        height: 100% !important;
+        height: 100dvh !important;
         grid-column: unset;
         padding: 6rem 1.5rem 1.5rem;
         display: none !important;
         z-index: 5;
+        overflow: hidden;
     }
 
     /* Мобильный чат — прозрачный, под сакуру */
@@ -434,13 +501,21 @@ body::before {
 
     .msg-user, .msg-ai {
         max-width: 90%;
+        font-size: 1.6rem;
+        border: 0.3rem solid var(--border);
+        margin: 1.2rem;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .msg-user {
+        border: 0.3rem solid #86a9b8;
     }
 
     .logout-row {
         width: 100%;
         justify-content: center;
-
-
+    }
 }
 /* Стили для плавающего гамбургера на мобилке */
 #mobile-hamburger {
@@ -469,6 +544,12 @@ body::before {
 
     /* Подвинем тело чата чуть ниже, чтобы текст сообщений не лез под кнопку */
     #s-chat.screen {
-        padding: 6.5rem 1.5rem 1.5rem !important;
+        padding: 6.5rem 1.5rem 0 !important;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+    .chat-input-wrap {
+        padding-bottom: 1.5rem;
     }
 }

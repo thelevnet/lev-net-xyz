@@ -4,114 +4,129 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>lev.net</title>
-    <link href="css/style.css" rel="stylesheet">
+    <link href="css/new.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="icon" type="image/png" href="/logo.png">
+    <link rel="icon" type="image/png" href="logo.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Tiny5&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: none; }
+        .bg-fix {
+            position: fixed;
+            inset: 0;
+            background: url('pic/sakura.gif') no-repeat center center;
+            background-size: cover;
+            z-index: -1;
+        }
+    </style>
 </head>
 <body>
-<script src="js/firebaseconf.js"></script>
-<div class="wrapper">
-    <div class="Header">
-        <h1><i class="fa-solid fa-terminal"></i> lev.net</h1>
-    </div>
-
-    <div class="Tabs">
-        <div class="tab active" data-target="about">About Me</div>
-<!--        <div class="tab" data-target="ideas">Ideas</div/>-->
-        <div class="tab" data-target="downloads">Downloads</div>
-        <div class="tab" data-target="links">Links</div>
-<!--        <div class="tab" data-target="chat">Chat</div>-->
-    </div>
-
-    <div class="Content">
-        <div id="about" class="tab-pane active">
-            <h2 class="header">About Me</h2>
-            <section>
-                <h3><i class="fa-solid fa-code"></i> Programming Languages & Tech</h3>
-                <div class="grid">
-                    <div class="card"><i class="fa-brands fa-java"></i><h3>Java</h3><p>Main Language</p></div>
-                    <div class="card"><i class="fa-brands fa-python"></i><h3>Python</h3><p>Good knowledge</p></div>
-                    <div class="card"><i class="fa-solid fa-hashtag"></i><h3>C#</h3><p>Learning...</p></div>
-                    <div class="card"><i class="fa-solid fa-c"></i><i class="fa-solid fa-plus"></i><i class="fa-solid fa-plus"></i><h3>C++</h3><p>Learning...</p></div>
-                </div>
-            </section>
-
-            <section class="section-margin">
-                <h3><i class="fa-solid fa-gears"></i> Projects</h3>
-                <div class="card project-trigger" onclick="document.querySelector('.tab[data-target=\'downloads\']').click();">
-                    <i class="fa-solid fa-folder-open"></i>
-                    <h3>My Projects</h3>
-                    <p>Click to see downloads</p>
-                </div>
-            </section>
-
-            <section class="section-margin">
-                <h3><i class="fa-solid fa-user-astronaut"></i> Who am I?</h3>
-                <div class="grid">
-                    <div class="card"><h3><i class="fa-solid fa-id-card"></i> Name: </h3><p>Lev Netreba</p></div>
-                    <div class="card"><h3><i class="fa-solid fa-cake-candles"></i> Birth Date: </h3><p>27.10.2012</p></div>
-                    <div class="card">
-                        <h3><i class="fa-solid fa-language"></i> Languages: </h3>
-                        <b> I Know:</b>
-                        <ul id="langs"><li> German</li><li> English</li><li> Ukrainian</li><li> Russian</li></ul>
-                        <b> I Learn:</b>
-                        <ul id="nolangs"><li> Japanese</li><li> Latin</li></ul>
-                    </div>
-                    <div class="card">
-                        <h3><i class="fa-solid fa-icons"></i> Hobbies: </h3>
-                        <ul>
-                            <li><i class="fa-solid fa-keyboard"></i>Programming</li>
-                            <li><i class="fa-solid fa-palette"></i>Drawing</li>
-                            <li><i class="fa-solid fa-language"></i>Conlanging</li>
-                            <li><i class="fa-solid fa-calculator"></i>Math</li>
-                        </ul>
-                    </div>
-                    <div class="card"><h3><i class="fa-brands fa-linux"></i> OS: </h3><p>Arch Linux</p></div>
-                </div>
-            </section>
-        </div>
-
-        <div id="ideas" class="tab-pane">
-            <h2 class="header">Web Ideas</h2>
-            <p>Share your ideas for new web projects and comment on others!</p>
-            
-            <div class="card" style="margin-top: 20px;">
-                <h3><i class="fa-solid fa-lightbulb"></i> Submit a new Idea</h3>
-                <div style="display: flex; gap: 10px; margin-top: 10px;">
-                    <input type="text" id="ideaInput" placeholder="I have an idea for..." style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text-1); font-family: inherit;">
-                    <button id="submitIdeaBtn" class="card" style="padding: 0 20px; cursor: pointer; height: 44px; display: flex; align-items: center; justify-content: center; box-shadow: none;">Post</button>
-                </div>
-            </div>
-
-            <div id="ideasList" style="margin-top: 30px;">
-                <div style="text-align: center; opacity: 0.5;">Loading ideas...</div>
-            </div>
-        </div>
-
-        <div id="downloads" class="tab-pane">
-            <h2 class="header">Downloads</h2>
-            <div class="card project-item">
-                <a href="Projects/GenLang.jar" download="GenLang.jar" class="download-link">
-                    <i class="fa-solid fa-file-code"></i>
-                    <h3>GenLang</h3>
-                    <p>An app for my Conlang</p>
-                    <small><i class="fa-brands fa-java"></i> Java, Swing</small>
-                </a>
-            </div>
-        </div>
-
-        <div id="links" class="tab-pane">
-            <h2 class="header">Links</h2>
-            <div class="grid">
-                <a href="https://github.com/thelevnet" class="link-card"><div class="card"><i class="fa-brands fa-github"></i><h3>GitHub</h3></div></a>
-                <a href="mailto:dev@lev-net.xyz" class="link-card"><div class="card"><i class="fa-solid fa-envelope"></i><h3>Mail</h3></div></a>
-                <a href="https://t.me/thelevnet" class="link-card"><div class="card"><i class="fa-brands fa-telegram"></i><h3>Telegram</h3></div></a>
-            </div>
-        </div>
+<div class="bg-fix"></div>
+<div class="Header">
+    <div class="hdr-burger">
+        <span></span><span></span><span></span>
     </div>
 </div>
+
+<section class="snap-section" id="s-title">
+    <h1 class="site-title">lev-net.xyz</h1>
+    <p>I use NixOS btw</p>
+</section>
+
+<section class="snap-section" id="s-about">
+    <span class="section-label">About me</span>
+    <div class="section-content">
+        <h3>Programming Languages & Tech</h3>
+        <div class="grid">
+            <div class="card"><h3>Java</h3><p>Main Language</p></div>
+            <div class="card"><h3>Python</h3><p>Good knowledge</p></div>
+            <div class="card"><h3>C++</h3><p>Learning...</p></div>
+        </div>
+        <h3>Who am I?</h3>
+        <div class="grid">
+            <div class="card"><h3>Birth Date:</h3><p>27.10.2012</p></div>
+            <div class="card">
+                <h3>Languages:</h3>
+                <h4>I Know:</h4>
+                <p>German</p><p>English</p><p>Ukranian</p><p>Russian</p>
+                <h4>I Learn:</h4>
+                <p>Japanese</p><p>Latin</p>
+            </div>
+            <div class="card">
+                <h3>Hobbies:</h3>
+                <p>Programming</p><p>Drawing</p><p>Languages</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="snap-section" id="s-downloads">
+    <span class="section-label">Projects</span>
+    <div class="projects-container">
+
+        <div class="proj-card active" style="background-image: url('pic/nsh.png')">
+            <div class="proj-body">
+                <h2>NSH</h2>
+                <div class="proj-tags">
+                    <span class="tag">C++</span>
+                    <span class="tag">Shell</span>
+                </div>
+                <p>A custom made shell with C++.</p>
+                <div class="proj-links"><a href="#">GitHub</a></div>
+            </div>
+        </div>
+
+        <div class="proj-card" style="background-image: url('pic/genlang.png')">
+            <div class="proj-body">
+                <h2>Genlang</h2>
+                <div class="proj-tags">
+                    <span class="tag">Java</span>
+                    <span class="tag">Swing</span>
+                    <span class="tag">Conlang</span>
+                </div>
+                <p>An App for managing my conlang.</p>
+                <div class="proj-links"><a href="#">GitHub</a></div>
+            </div>
+        </div>
+
+        <div class="proj-card" style="background-image: url('pic/levnetxyz.png')">
+            <div class="proj-body">
+                <h2>lev-net.xyz</h2>
+                <div class="proj-tags">
+                    <span class="tag">Website</span>
+                </div>
+                <p>My own website i use for various projects.</p>
+                <div class="proj-links"><a href="#">GitHub</a></div>
+            </div>
+        </div>
+
+        <div class="proj-controls">
+            <button id="proj-prev"><</button>
+            <span id="proj-counter">1 / 3</span>
+            <button id="proj-next">></button>
+        </div>
+    </div>
+</section>
+
+<section class="snap-section" id="s-links">
+    <span class="section-label">Links</span>
+    <div class="section-content">
+        <div class="grid">
+            <a href="https://github.com/thelevnet" class="link-card">
+                <div class="card"><h3>GitHub</h3></div>
+            </a>
+            <a href="mailto:dev@lev-net.xyz" class="link-card">
+                <div class="card"><h3>Mail</h3></div>
+            </a>
+            <a href="https://t.me/thelevnet" class="link-card">
+                <div class="card"><h3>Telegram</h3></div>
+            </a>
+        </div>
+    </div>
+</section>
+
 <script src="js/index.js"></script>
-<script type="module" src="js/ideas.js"></script>
-<script type="module" src="js/chat.js"></script>
 </body>
 </html>

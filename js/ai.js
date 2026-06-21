@@ -175,19 +175,19 @@ async function sendMessage() {
   if (empty) empty.style.display = 'none';
 
   // 1. Добавляем сообщение пользователя на экран
-  const um = document.createElement('div');
-  um.className = 'msg-user';
-  um.textContent = text;
+  const um = renderMessage('user', text);
   body.appendChild(um);
   box.textContent = '';
-  body.scrollTop = body.scrollHeight;
+  setTimeout(() => {
+    body.scrollTop = body.scrollHeight;
+  }, 10);
 
   // 2. Создаем заглушку "Печатает..."
-  const aiMessageEl = document.createElement('div');
-  aiMessageEl.className = 'msg-ai';
-  aiMessageEl.innerHTML = `<span style="color: var(--text-2); font-style: italic;">AI thinks....</span>`;
+  const aiMessageEl = renderMessage('ai', 'AI thinks....', true);
   body.appendChild(aiMessageEl);
-  body.scrollTop = body.scrollHeight;
+  setTimeout(() => {
+    body.scrollTop = body.scrollHeight;
+  }, 10);
 
   // 3. Вытаскиваем настройки пользователя ИЗ ФАЙРБЕЙЗА
   const currentUser = localStorage.getItem('AI_user');
@@ -208,20 +208,139 @@ async function sendMessage() {
   const aiResponseText = await askOpenRouter(text, userPrefs);
 
   // 5. Выводим ответ на экран с пиксельными кнопками действий
-  aiMessageEl.innerHTML = `${aiResponseText.replace(/\n/g, '<br>')}
-    <div class="msg-meta" style="display:flex; gap:8px; margin-top:8px;">
-      ${ico('copy')}${ico('share')}${ico('play')}${ico('like')}${ico('dislike')}${ico('retry')}
-    </div>`;
-
+  updateAiMessage(aiMessageEl, aiResponseText);
+  
   if (note) note.style.display = 'flex';
-  body.scrollTop = body.scrollHeight;
+  setTimeout(() => {
+    body.scrollTop = body.scrollHeight;
+  }, 50);
+}
+
+// ---- KEYBOARD FIX FOR MOBILE ----
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', () => {
+    const phone = document.querySelector('.phone');
+    if (phone) {
+      phone.style.height = window.visualViewport.height + 'px';
+    }
+    // Scroll to bottom when keyboard opens
+    const body = document.getElementById('chat-body');
+    if (body) {
+      body.scrollTop = body.scrollHeight;
+    }
+  });
+}
+
+// ---- HELPER: RENDER MESSAGE WITH ACTIONS ----
+function renderMessage(role, text, isThinking = false) {
+  const m = document.createElement('div');
+  m.className = `msg-${role}`;
+  m.dataset.role = role;
+  
+  const content = document.createElement('div');
+  content.className = 'msg-content';
+  content.innerHTML = isThinking ? text : text.replace(/\n/g, '<br>');
+  m.appendChild(content);
+
+  if (!isThinking) {
+    const meta = document.createElement('div');
+    meta.className = 'msg-meta';
+    
+    if (role === 'user') {
+      meta.innerHTML = `${ico('edit')}${ico('copy')}`;
+    } else {
+      meta.innerHTML = `${ico('copy')}${ico('retry')}`;
+    }
+    
+    // Add event listeners
+    meta.querySelectorAll('.msg-btn').forEach(btn => {
+      btn.onclick = (e) => {
+        const action = btn.dataset.action;
+        if (action === 'copy') copyText(text, btn);
+        if (action === 'retry') retryLast();
+        if (action === 'edit') editMsg(m, text);
+      };
+    });
+    
+    m.appendChild(meta);
+  }
+  
+  return m;
+}
+
+function updateAiMessage(el, text) {
+  const content = el.querySelector('.msg-content');
+  content.innerHTML = text.replace(/\n/g, '<br>');
+  
+  const meta = document.createElement('div');
+  meta.className = 'msg-meta';
+  meta.innerHTML = `${ico('copy')}${ico('retry')}`;
+  
+  meta.querySelectorAll('.msg-btn').forEach(btn => {
+    btn.onclick = () => {
+      const action = btn.dataset.action;
+      if (action === 'copy') copyText(text, btn);
+      if (action === 'retry') retryLast(); // For AI retry, we usually retry the last user message
+    };
+  });
+  
+  el.appendChild(meta);
+}
+
+// ---- ACTIONS ----
+function copyText(txt, btn) {
+  navigator.clipboard.writeText(txt).then(() => {
+    const oldHtml = btn.innerHTML;
+    btn.innerHTML = '✓';
+    setTimeout(() => { btn.innerHTML = oldHtml; }, 1000);
+  });
+}
+
+function retryLast() {
+  const msgs = document.querySelectorAll('.msg-user');
+  if (msgs.length > 0) {
+    const lastUserMsg = msgs[msgs.length - 1];
+    const text = lastUserMsg.querySelector('.msg-content').innerText;
+    
+    // Remove last AI message if it exists
+    const aiMsgs = document.querySelectorAll('.msg-ai');
+    if (aiMsgs.length > 0) {
+      aiMsgs[aiMsgs.length - 1].remove();
+    }
+    
+    // Remove the last user message so it doesn't duplicate when sendMessage() is called
+    lastUserMsg.remove();
+    
+    // Re-inject text into box and send
+    document.getElementById('chat-input').textContent = text;
+    sendMessage();
+  }
+}
+
+function editMsg(el, oldText) {
+  const content = el.querySelector('.msg-content');
+  const input = document.getElementById('chat-input');
+  
+  // Put text back to input
+  input.textContent = oldText;
+  input.focus();
+  
+  // Remove this message and all subsequent messages (standard AI chat behavior)
+  let next = el.nextElementSibling;
+  while (next) {
+    let toRemove = next;
+    next = next.nextElementSibling;
+    toRemove.remove();
+  }
+  el.remove();
 }
 
 // ---- ПОЛНОСТЬЮ ПИКСЕЛЬНЫЙ СЛОВАРЬ ИКОНОК ----
 function ico(name) {
   const icons = {
-    copy: '<svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" style="cursor:pointer;"><rect x="1" y="1" width="10" height="10"/><rect x="5" y="5" width="10" height="10" fill="currentColor"/></svg>',
-    retry: '<svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" style="cursor:pointer;"><rect x="1" y="1" width="2" height="6"/><rect x="1" y="5" width="6" height="2"/><rect x="3" y="2" width="10" height="2"/><rect x="11" y="4" width="2" height="8"/><rect x="3" y="12" width="10" height="2"/><rect x="1" y="9" width="2" height="4"/></svg>'
+    copy: `<div class="msg-btn" data-action="copy" title="Copy"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="1" width="10" height="10"/><rect x="5" y="5" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1"/></svg></div>`,
+    retry: `<div class="msg-btn" data-action="retry" title="Retry"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="1" width="2" height="6"/><rect x="1" y="5" width="6" height="2"/><rect x="3" y="2" width="10" height="2"/><rect x="11" y="4" width="2" height="8"/><rect x="3" y="12" width="10" height="2"/><rect x="1" y="9" width="2" height="4"/></svg></div>`,
+    edit: `<div class="msg-btn" data-action="edit" title="Edit"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><rect x="2" y="12" width="12" height="2"/><rect x="10" y="2" width="4" height="4"/><rect x="4" y="8" width="6" height="4"/><rect x="7" y="5" width="4" height="4"/></svg></div>`
   };
   return icons[name] || '';
 }

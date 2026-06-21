@@ -42,7 +42,7 @@ console.log("Hello, why are you reading my Console... It's MY Console.");
     overlay.innerHTML = `
         <nav class="nav-menu">
             <a href="../">Home</a>
-            <a href="../chat/">Chat</a>
+<!--            <a href="../chat/">Chat</a>-->
             <a href="../ai/">AI</a>
         </nav>
     `;
